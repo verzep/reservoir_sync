@@ -1,2 +1,1 @@
-def hello() -> str:
-    return "Hello from reservoir-sync!"
+"""Reservoir computing, generalized synchronization and the closed loop."""

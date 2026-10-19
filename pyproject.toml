@@ -1,7 +1,7 @@
 [project]
 name = "reservoir-sync"
 version = "0.1.0"
-description = "Add your description here"
+description = "Closed-loop reservoir computing: state reconstruction, generalized synchronization and autonomous dynamics"
 readme = "README.md"
 authors = [
     { name = "verzep", email = "pietro.verzelli@gmail.com" }
@@ -22,3 +22,6 @@ dev = [
     "ipykernel>=7.3.0",
     "pytest>=9.1.1",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
