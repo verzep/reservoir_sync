@@ -23,7 +23,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.stats import spearmanr
+from scipy.stats import rankdata, spearmanr
 
 
 def load(paths, source):
@@ -68,6 +68,31 @@ def within_gamma(T, x, y="valid"):
         out[g] = spearmanr(T[x][m], T[y][m])[0] if m.sum() > 3 else np.nan
     pooled = spearmanr(T[x], T[y], nan_policy="omit")[0]
     return out, float(np.nanmean(list(out.values()))), float(pooled)
+
+
+def partial_within_gamma(T, x, y, z):
+    """Spearman partial correlation of x and y given z, in each gamma."""
+    def resid(a, b):
+        a, b = rankdata(a), rankdata(b)
+        return a - np.polyval(np.polyfit(b, a, 1), b)
+
+    out = {}
+    for g in np.unique(T["gamma"]):
+        m = (T["gamma"] == g) & np.isfinite(T[x]) & np.isfinite(T[y]) & np.isfinite(T[z])
+        out[g] = (spearmanr(resid(T[x][m], T[z][m]), resid(T[y][m], T[z][m]))[0]
+                  if m.sum() > 4 else np.nan)
+    return out
+
+
+def unstable(recs, thresh=-0.05):
+    """Runs with a non-negative transverse exponent estimate."""
+    bad = [r for r in recs if r["lambda_perp_driven"] is not None and r["lambda_perp_driven"] >= thresh]
+    print(f"  runs with lambda_perp >= {thresh}: {len(bad)}")
+    for r in sorted(bad, key=lambda r: -r["lambda_perp_driven"]):
+        c = r["config"]
+        print(f"    gamma {c['gamma']:>4g} rho {c['spectral_radius']} in {c['input_scale']} seed {c['seed']}: "
+              f"lambda_perp {r['lambda_perp_driven']:+.3f}, nrmse {r['train_nrmse']:.1e}, "
+              f"gs {r['gs_distance_final']:.0e}, valid {r['valid_time_lyap']:.2f}")
 
 
 def report_corr(T, names, title):
@@ -146,6 +171,15 @@ def main():
                 "  Spearman rho with valid time")
     per, mean, _ = within_gamma(T, "perp_driven", "cle_max")
     print(f"  rho(lambda_perp, CLE_max) within gamma: mean {mean:+.2f}")
+    per, mean, _ = within_gamma(T, "perp_driven", "train_nrmse")
+    print(f"  rho(lambda_perp, train_nrmse) within gamma: "
+          + " ".join(f"{v:+.2f}" for v in per.values()) + f"  mean {mean:+.2f}")
+    print("  partial rho with valid time, controlling for train_nrmse:")
+    for x in ["perp_driven", "cle_max", "field_train"]:
+        per = partial_within_gamma(T, x, "valid", "train_nrmse")
+        print(f"    {x:<18}" + " ".join(f"{v:+.2f}" for v in per.values())
+              + f"  mean {np.nanmean(list(per.values())):+.2f}")
+    unstable(recs)
 
     print("\nC. Closed-loop spectrum without a smooth sync map")
     claim_c(recs)
