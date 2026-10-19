@@ -51,9 +51,24 @@ def summarize_field_errors(fe):
     }
 
 
-def valid_time(S_true, S_pred, dt, threshold=0.4):
-    """Time until ||s_pred - s|| / sqrt(<||s||^2>) first exceeds threshold."""
-    scale = np.sqrt(np.mean(np.sum(S_true**2, axis=1)))
+def valid_time(S_true, S_pred, dt, threshold=0.4, scale=None):
+    """Time until ||s_pred - s|| / scale first exceeds threshold.
+
+    scale defaults to sqrt(<||s||^2>) over S_true.
+    """
+    if scale is None:
+        scale = np.sqrt(np.mean(np.sum(S_true**2, axis=1)))
     err = np.linalg.norm(S_pred - S_true, axis=1) / scale
     bad = np.flatnonzero(~(err <= threshold))  # NaN counts as failure
     return (bad[0] if bad.size else len(err)) * dt
+
+
+def valid_times(reservoir, N, run, starts, n_pred, threshold=0.4):
+    """Valid times of free runs started from the driven states run.R[i], i in starts."""
+    scale = np.sqrt(np.mean(np.sum(run.S**2, axis=1)))
+    out = []
+    with np.errstate(all="ignore"):
+        for i in starts:
+            free = run_autonomous(reservoir, N, run.R[i], run.dt, n_pred)
+            out.append(valid_time(run.S[i : i + n_pred + 1], free @ N, run.dt, threshold, scale))
+    return np.array(out)
