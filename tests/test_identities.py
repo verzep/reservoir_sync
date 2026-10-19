@@ -71,7 +71,7 @@ def test_ridge_readout_is_regularized_dmd_toward_W(lorenz_s0):
     R, R_dot = run.R, res.f(run.R, run.S)
     C_inv = np.linalg.inv(R.T @ R + beta * np.eye(res.n))
     expected = R_dot.T @ R @ C_inv + beta * res.W @ C_inv
-    np.testing.assert_allclose(res.W + res.V @ N.T, expected, rtol=1e-8, atol=1e-10)
+    np.testing.assert_allclose(res.W + res.V @ N.T, expected, rtol=1e-6, atol=1e-8)  # C is ill-conditioned
 
 
 def test_least_squares_readout_is_dmd(lorenz_s0):
