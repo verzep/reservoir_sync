@@ -12,6 +12,7 @@
    source's) against e, e_dot and the feedback term N^T d.
 5. Variants: medians per readout / reservoir variant (kind, n, beta, penalties)
    and gamma; for the penalty and one-at-a-time scans.
+6. Readout variants paired with the plain ridge readout of the same reservoir.
 """
 
 import argparse
@@ -204,11 +205,35 @@ def variants(T, recs):
               f"  {np.mean(T['fail_frac'][i]):4.2f}  {np.median(T['valid_med'][i]):5.2f}")
 
 
+def paired(T, recs):
+    """Each readout variant vs the plain ridge readout (beta 1e-6, no penalty) of the same reservoir."""
+    base_cfg = {"beta": 1e-6, "feedback_penalty": 0.0, "transverse_penalty": 0.0}
+    key = lambda r: (r["config"]["gamma"], r["config"]["seed"], r["config"]["spectral_radius"],
+                     r["config"]["input_scale"], r["config"]["n"], r["config"]["kind"])
+    var = lambda r: tuple((k, r["config"].get(k, 0.0)) for k in base_cfg)
+    base = {key(r): i for i, r in enumerate(recs) if all(r["config"].get(k, 0.0) == v for k, v in base_cfg.items())}
+    groups = defaultdict(list)
+    for i, r in enumerate(recs):
+        if key(r) in base and i != base[key(r)]:
+            groups[(r["config"]["gamma"], var(r))].append((i, base[key(r)]))
+    if not groups:
+        return
+    print("\n6. Paired with the plain ridge readout of the same reservoir (beta 1e-6, no penalty)")
+    print("  gamma  variant                       pairs  valid base -> variant  frac better  unstable base -> variant")
+    for g, v in sorted(groups):
+        ij = np.array(groups[(g, v)])
+        a, b = T["valid_med"][ij[:, 1]], T["valid_med"][ij[:, 0]]
+        ua, ub = T["perp"][ij[:, 1]] >= UNSTABLE, T["perp"][ij[:, 0]] >= UNSTABLE
+        name = ", ".join(f"{k} {x:g}" for k, x in v if x != base_cfg[k]) or "baseline"
+        print(f"  {g:5g}  {name:28s} {len(ij):5d}  {np.median(a):6.2f} -> {np.median(b):6.2f}"
+              f"     {np.mean(b > a):5.2f}        {np.mean(ua):4.2f} -> {np.mean(ub):4.2f}")
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("paths", nargs="+")
     p.add_argument("--source", required=True)
-    p.add_argument("--sections", default="12345")
+    p.add_argument("--sections", default="123456")
     a = p.parse_args()
     recs = load(a.paths, a.source)
     T = table(recs)
@@ -223,6 +248,8 @@ def main():
         dynamics_error(T)
     if "5" in a.sections:
         variants(T, recs)
+    if "6" in a.sections:
+        paired(T, recs)
 
 
 if __name__ == "__main__":
