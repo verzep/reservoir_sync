@@ -33,7 +33,14 @@ from .lyapunov import (
     extra_exponents,
     source_exponents,
 )
-from .readout import fit_readout, nrmse
+from .readout import (
+    feedback_gain_rms,
+    feedback_gram,
+    fit_readout,
+    jacobian_gram,
+    nrmse,
+    readout_jacobian_rms,
+)
 from .reservoirs import random_reservoir
 from .sources import SOURCES
 from .transverse import invariance_leak
@@ -61,6 +68,8 @@ class Config:
     n_starts: int = 20  # free runs from evenly spaced test states (0: off)
     t_pred: float | None = None  # length of each of them (None: t_test / 2)
     t_attractor: float | None = None  # long free run for the end state (None: t_lyap)
+    feedback_penalty: float = 0.0  # mu in ridge + mu sum_t ||N^T B_t||^2 (readout.feedback_gram)
+    transverse_penalty: float = 0.0  # mu in ridge + mu sum_t ||N^T A_c(t)||^2 (readout.jacobian_gram)
 
 
 def _steps(t, dt):
@@ -85,8 +94,17 @@ def run(cfg: Config) -> dict:
     i_end = n_wash + n_train
     train, test = full[n_wash : i_end + 1], full[i_end:]
 
-    N = fit_readout(train.R, train.S, cfg.beta)
+    penalty = None
+    if cfg.feedback_penalty > 0:
+        penalty = cfg.feedback_penalty * feedback_gram(res, train.R, train.S)
+    if cfg.transverse_penalty > 0:
+        P = cfg.transverse_penalty * jacobian_gram(res, train.R, train.S)
+        penalty = P if penalty is None else penalty + P
+    N = fit_readout(train.R, train.S, cfg.beta, penalty=penalty)
     out = {"config": asdict(cfg), "dt_used": dt}
+    out["N_norm"] = float(np.linalg.norm(N))
+    out["feedback_gain_train"] = feedback_gain_rms(res, N, train.R, train.S)
+    out["readout_jacobian_train"] = readout_jacobian_rms(res, N, train.R, train.S)
     out["train_nrmse"] = nrmse(train.S, train.R @ N)
     out["test_nrmse_driven"] = nrmse(test.S, test.R @ N)
     out["train_field"] = summarize_field_errors(field_errors(source, res, N, train))
