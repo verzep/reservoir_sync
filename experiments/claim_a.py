@@ -32,9 +32,14 @@ from pathlib import Path
 
 import numpy as np
 
-from reservoir_sync.closed_loop import field_errors, summarize_field_errors, valid_times
+from reservoir_sync.closed_loop import field_errors, free_run_end_state, summarize_field_errors, valid_times
 from reservoir_sync.driven import drive, settle_source
-from reservoir_sync.lyapunov import closed_loop_exponents_driven, extra_exponents, source_exponents
+from reservoir_sync.lyapunov import (
+    closed_loop_exponents_driven,
+    closed_loop_exponents_free,
+    extra_exponents,
+    source_exponents,
+)
 from reservoir_sync.perturbation import pick_directions, readout_directions
 from reservoir_sync.readout import fit_readout, nrmse
 from reservoir_sync.reservoirs import random_reservoir
@@ -63,6 +68,7 @@ class Task:
     t_pred: float = 20.0
     t_lyap: float = 100.0
     k: int = 6
+    t_attractor: float = 0.0  # > 0: free run from the synchronized state, end state and exponents
 
 
 def run_task(t: Task) -> dict:
@@ -113,6 +119,12 @@ def run_task(t: Task) -> dict:
     extra = extra_exponents(lam_cl, lam_src)
     out["lyap_closed_driven"] = [float(x) for x in lam_cl]
     out["lambda_perp"] = float(extra[0]) if extra.size and np.isfinite(extra[0]) else None
+    if t.t_attractor > 0:
+        n_attr = steps(t.t_attractor)
+        out["end_state"] = free_run_end_state(res, N, train.R[-1], dt, n_attr, test.S)
+        with np.errstate(all="ignore"):
+            lam_free = closed_loop_exponents_free(res, N, train.R[-1], dt, n_attr, 3)
+        out["lyap_closed_free"] = [float(x) if np.isfinite(x) else None for x in lam_free]
     out["seconds"] = time.time() - t0
     return out
 
@@ -124,12 +136,12 @@ def _safe(t):
         return {"task": dataclasses.asdict(t), "error": traceback.format_exc()}
 
 
-def build_tasks(gammas, seeds, eps_list, betas, n_directions):
+def build_tasks(gammas, seeds, eps_list, betas, n_directions, t_attractor=0.0):
     tasks = []
     for g, s in itertools.product(gammas, seeds):
-        tasks.append(Task("baseline", g, s))
-        tasks += [Task("beta", g, s, beta=b) for b in betas]
-        tasks += [Task("direction", g, s, eps=e, rank=r, n_directions=n_directions)
+        tasks.append(Task("baseline", g, s, t_attractor=t_attractor))
+        tasks += [Task("beta", g, s, beta=b, t_attractor=t_attractor) for b in betas]
+        tasks += [Task("direction", g, s, eps=e, rank=r, n_directions=n_directions, t_attractor=t_attractor)
                   for e in eps_list for r in range(n_directions)]
     return tasks
 
@@ -141,10 +153,12 @@ def main():
     p.add_argument("--eps", type=float, nargs="+", default=[3e-4, 3e-3, 3e-2])
     p.add_argument("--beta", type=float, nargs="+", default=[1e-10, 1e-8, 1e-6, 1e-4, 1e-2, 1.0])
     p.add_argument("--n-directions", type=int, default=8)
+    p.add_argument("--t-attractor", type=float, default=0.0,
+                   help="> 0: also the free run's end state and exponents over this time")
     p.add_argument("--workers", type=int, default=os.cpu_count())
     p.add_argument("--out", type=Path, required=True)
     a = p.parse_args()
-    tasks = build_tasks(a.gamma, a.seed, a.eps, a.beta, a.n_directions)
+    tasks = build_tasks(a.gamma, a.seed, a.eps, a.beta, a.n_directions, a.t_attractor)
     a.out.parent.mkdir(parents=True, exist_ok=True)
     done = set()
     if a.out.exists():
