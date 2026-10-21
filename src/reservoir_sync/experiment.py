@@ -16,7 +16,14 @@ from dataclasses import asdict, dataclass
 
 import numpy as np
 
-from .closed_loop import field_errors, run_autonomous, summarize_field_errors, valid_time
+from .closed_loop import (
+    field_errors,
+    free_run_end_state,
+    run_autonomous,
+    summarize_field_errors,
+    valid_time,
+    valid_times,
+)
 from .driven import DrivenRun, drive, joint_field, settle_source
 from .integrate import simulate
 from .lyapunov import (
@@ -51,6 +58,9 @@ class Config:
     t_lyap: float = 200.0
     k: int = 10
     leak_stride: int = 20
+    n_starts: int = 20  # free runs from evenly spaced test states (0: off)
+    t_pred: float | None = None  # length of each of them (None: t_test / 2)
+    t_attractor: float | None = None  # long free run for the end state (None: t_lyap)
 
 
 def _steps(t, dt):
@@ -85,6 +95,12 @@ def run(cfg: Config) -> dict:
     with np.errstate(all="ignore"):
         free = run_autonomous(res, N, train.R[-1], dt, n_test)
     out["valid_time"] = valid_time(test.S, free @ N, dt)
+    if cfg.n_starts > 0:
+        n_pred = _steps(cfg.t_pred if cfg.t_pred is not None else cfg.t_test / 2, dt)
+        starts = np.linspace(0, len(test.S) - n_pred - 1, cfg.n_starts).astype(int)
+        vts = valid_times(res, N, test, starts, n_pred)
+        out["valid_times"] = vts.tolist()
+        out["valid_cap"] = n_pred * dt
 
     # generalized synchronization: a second reservoir copy from a random state
     rng = np.random.default_rng(cfg.seed + 1000)
@@ -107,6 +123,21 @@ def run(cfg: Config) -> dict:
     out["lyap_closed_driven"] = _finite_list(lam_cl_driven)
     out["lyap_closed_free"] = _finite_list(lam_cl_free)
     out["valid_time_lyap"] = out["valid_time"] * float(lam_src[0])
+    if cfg.n_starts > 0:
+        vts_lyap = vts * float(lam_src[0])
+        out["valid_times_lyap"] = vts_lyap.tolist()
+        out["valid_mean_lyap"] = float(vts_lyap.mean())
+        out["valid_median_lyap"] = float(np.median(vts_lyap))
+        out["valid_cap_lyap"] = out["valid_cap"] * float(lam_src[0])
+
+    # where the free run ends up: long closed-loop run from the synchronized state
+    n_attr = _steps(cfg.t_attractor if cfg.t_attractor is not None else cfg.t_lyap, dt)
+    end = free_run_end_state(res, N, r_sync, dt, n_attr, test.S)
+    if end["class"] == "bounded":  # same start as lam_cl_free; split by its top exponent
+        lam1 = lam_cl_free[0]
+        end["class"] = "chaotic" if lam1 > 0.2 * lam_src[0] else "periodic"
+        end["on_source"] = bool(max(end["nn_to_source"], end["nn_from_source"]) < 0.05)
+    out["end_state"] = end
     # rate condition for a differentiable synchronization map
     out["smooth_sync_condition"] = bool(lam_cle[0] < lam_src[-1])
     extra = extra_exponents(lam_cl_driven, lam_src)

@@ -63,3 +63,36 @@ def test_invariance_leak():
     R2 = np.random.default_rng(1).normal(size=(5, 2))
     leak = invariance_leak(LinearReservoir(A, np.ones((2, 1))), N2, R2, R2 @ N2)
     assert leak == pytest.approx(1 / np.sqrt(2))
+
+
+def test_experiment_multi_start_and_end_state():
+    from reservoir_sync.experiment import Config, run
+
+    cfg = Config(n=30, t_washout=5, t_train=20, t_test=10, t_lyap=10, k=3, n_starts=4)
+    out = run(cfg)
+    vts = np.array(out["valid_times"])
+    assert vts.shape == (4,)
+    assert np.all((vts >= 0) & (vts <= out["valid_cap"] + 1e-9))
+    np.testing.assert_allclose(out["valid_times_lyap"], vts * out["lyap_source"][0])
+    assert out["end_state"]["class"] in ("diverged", "fixed_point", "periodic", "chaotic")
+
+
+def test_end_state_classes():
+    from reservoir_sync.closed_loop import free_run_end_state
+
+    # 2-d linear reservoir dr/dt = A r with N^T r = r: a stable focus and a centre
+    class Lin:
+        def __init__(self, A):
+            self.A = np.asarray(A, float)
+
+        def f(self, R, S):
+            return R @ self.A.T
+
+    ref = np.random.default_rng(0).normal(size=(500, 2))
+    N = np.eye(2)
+    sink = free_run_end_state(Lin([[-1, 2], [-2, -1]]), N, np.array([1.0, 0]), DT, 4000, ref)
+    assert sink["class"] == "fixed_point"
+    centre = free_run_end_state(Lin([[0, 1], [-1, 0]]), N, np.array([1.0, 0]), DT, 4000, ref)
+    assert centre["class"] == "bounded" and centre["recurrence"] < 1
+    blowup = free_run_end_state(Lin([[1, 0], [0, 1]]), N, np.array([1.0, 0]), DT, 4000, ref)
+    assert blowup["class"] == "diverged"

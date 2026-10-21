@@ -72,3 +72,44 @@ def valid_times(reservoir, N, run, starts, n_pred, threshold=0.4):
             free = run_autonomous(reservoir, N, run.R[i], run.dt, n_pred)
             out.append(valid_time(run.S[i : i + n_pred + 1], free @ N, run.dt, threshold, scale))
     return np.array(out)
+
+
+def free_run_end_state(reservoir, N, r0, dt, n_steps, S_ref, n_points=2000, seed=0):
+    """Where the free run from r0 ends up, compared with the source attractor S_ref.
+
+    Uses the second half of the run (s_hat = N^T r). Returns the class
+    ("diverged", "fixed_point" or "bounded") and attractor statistics:
+
+    - nn_to_source / nn_from_source: median distance from free-run points to
+      the nearest S_ref point and back, relative to the rms of S_ref around its
+      mean; both small means the free run covers the source attractor;
+    - mean_shift, std_ratio: per-component mean difference (relative to the
+      S_ref std) and std ratio;
+    - recurrence: closest return to the final point earlier in the second half,
+      in units of the largest step |s_hat(t + dt) - s_hat(t)| (<~ 1 on a cycle).
+    """
+    with np.errstate(all="ignore"):
+        R = run_autonomous(reservoir, N, r0, dt, n_steps)
+        S = R[len(R) // 2 :] @ N
+    mu, sd = S_ref.mean(0), S_ref.std(0)
+    scale = float(np.sqrt(np.mean(np.sum((S_ref - mu) ** 2, axis=1))))
+    out = {"t": n_steps * dt}
+    if not np.all(np.isfinite(S)) or np.max(np.abs(S - mu)) > 1e3 * scale:
+        out["class"] = "diverged"
+        return out
+    spread = float(np.sqrt(np.mean(np.sum((S - S.mean(0)) ** 2, axis=1)))) / scale
+    out["spread"] = spread
+    out["mean_shift"] = ((S.mean(0) - mu) / sd).tolist()
+    out["std_ratio"] = (S.std(0) / sd).tolist()
+    rng = np.random.default_rng(seed)
+    A = S[rng.choice(len(S), min(n_points, len(S)), replace=False)]
+    B = S_ref[rng.choice(len(S_ref), min(n_points, len(S_ref)), replace=False)]
+    D = np.sqrt(((A[:, None, :] - B[None, :, :]) ** 2).sum(-1)) / scale
+    out["nn_to_source"] = float(np.median(D.min(1)))
+    out["nn_from_source"] = float(np.median(D.min(0)))
+    # recurrence of the final point, skipping the last 5% (its own neighbourhood)
+    step = float(np.max(np.linalg.norm(np.diff(S, axis=0), axis=1)))
+    d_last = np.linalg.norm(S[: int(0.95 * len(S))] - S[-1], axis=1)
+    out["recurrence"] = float(d_last.min() / step) if step > 0 else 0.0
+    out["class"] = "fixed_point" if spread < 1e-3 else "bounded"
+    return out

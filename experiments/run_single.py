@@ -18,7 +18,7 @@ from reservoir_sync.experiment import Config, run
 def parse_config(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     for f in dataclasses.fields(Config):
-        typ = float if f.name == "density" else f.type
+        typ = float if f.type == (float | None) else f.type
         parser.add_argument(f"--{f.name.replace('_', '-')}", type=typ, default=f.default)
     parser.add_argument("--out", type=Path, default=None)
     args = vars(parser.parse_args(argv))
