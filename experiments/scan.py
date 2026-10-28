@@ -54,7 +54,8 @@ def main():
         for line in out.read_text().splitlines():
             rec = json.loads(line)
             if "error" not in rec:
-                done.add(json.dumps(rec["config"], sort_keys=True))
+                # fill fields added to Config since the record was written
+                done.add(json.dumps(dataclasses.asdict(Config(**rec["config"])), sort_keys=True))
     todo = [c for c in grid if json.dumps(dataclasses.asdict(c), sort_keys=True) not in done]
     print(f"{len(grid)} configs, {len(grid) - len(todo)} already done, {len(todo)} to run on {workers} workers")
     with mp.get_context("spawn").Pool(workers) as pool, out.open("a") as fh:
