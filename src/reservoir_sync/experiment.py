@@ -42,7 +42,7 @@ from .readout import (
     readout_jacobian_rms,
 )
 from .reservoirs import random_reservoir
-from .sources import SOURCES
+from .sources import make_source
 from .transverse import invariance_leak
 
 
@@ -70,6 +70,9 @@ class Config:
     t_attractor: float | None = None  # long free run for the end state (None: t_lyap)
     feedback_penalty: float = 0.0  # mu in ridge + mu sum_t ||N^T B_t||^2 (readout.feedback_gram)
     transverse_penalty: float = 0.0  # mu in ridge + mu sum_t ||N^T A_c(t)||^2 (readout.jacobian_gram)
+    amplitude: float | None = None  # centre the source, component std = amplitude (None: raw)
+    time_scale: float = 1.0  # source sped up by this factor
+    t_settle: float = 50.0  # transient of the source before the washout
 
 
 def _steps(t, dt):
@@ -82,13 +85,13 @@ def _finite_list(x):
 
 def run(cfg: Config) -> dict:
     t_start = time.time()
-    source = SOURCES[cfg.source]()
+    source = make_source(cfg.source, cfg.amplitude, cfg.time_scale)
     dt = min(cfg.dt, 0.25 / cfg.gamma)  # keep gamma * dt small for RK4
     res = random_reservoir(
         cfg.n, source.dim, cfg.kind, cfg.spectral_radius, cfg.input_scale,
         cfg.bias_scale, cfg.gamma, cfg.density, cfg.seed,
     )
-    s0 = settle_source(source, dt, 50.0, seed=cfg.seed)
+    s0 = settle_source(source, dt, cfg.t_settle, seed=cfg.seed)
     n_wash, n_train, n_test = (_steps(t, dt) for t in (cfg.t_washout, cfg.t_train, cfg.t_test))
     full = drive(source, res, s0, np.zeros(res.n), dt, n_wash + n_train + n_test)
     i_end = n_wash + n_train
