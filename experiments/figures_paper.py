@@ -75,7 +75,7 @@ def fig_counterexample(out):
     a.semilogy(t, closed, color=GAMMA_COLORS[5.0], lw=1.6, label="closed loop")
     a.set_xlabel("time")
     a.set_ylabel("perturbation norm")
-    a.set_title("(a) A perturbation along ker Nᵀ", loc="left")
+    a.set_title("(a) Perturbations decay when driven, grow in closed loop", loc="left", fontsize=8)
     a.legend(frameon=False)
     r_on = np.array([expm(J * x) @ np.array([0.0, 1.0]) for x in t])
     r_off = np.array([expm(J * x) @ np.array([1e-3, 1.0]) for x in t])
@@ -85,7 +85,7 @@ def fig_counterexample(out):
     b.set_ylim(-1.5, 1.2)
     b.set_xlabel("time")
     b.set_ylabel("decoded output Nᵀr")
-    b.set_title("(b) Output of the free run", loc="left")
+    b.set_title("(b) A small offset destroys the free run", loc="left", fontsize=8)
     b.legend(frameon=False)
     for ax in (a, b):
         style(ax)
