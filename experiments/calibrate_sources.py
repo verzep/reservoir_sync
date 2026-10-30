@@ -2,8 +2,9 @@
 
     python experiments/calibrate_sources.py --workers 20 --out results/source_scan/calibration.json
 
-For each source: mean and std per component, the dominant period (peak of the
-power spectrum), the fastest rate on the attractor (99.9th percentile of the
+For each source: mean and std per component, the characteristic period (inverse
+of the power-weighted mean frequency: the spectral peak picks slow switching in
+Arneodo and HyperXu), the fastest rate on the attractor (99.9th percentile of the
 spectral norm of Dg), and the exponents at step dt and dt / 2. The metadata
 values of dysts (chaotic_attractors.json) are listed for comparison.
 """
@@ -41,7 +42,6 @@ DYSTS_SPECTRA = {  # lyapunov_spectrum_estimated in dysts/data/chaotic_attractor
     "qi_chen": [3.888, 0.134, -43.836],
     "lu_chen": [0.665, 0.145, -22.570],
     "dadras": [0.473, 0.006, -11.158],
-    "moore_spiegel": [0.407, -0.022, -1.198],
     "hyper_lorenz": [0.293, 0.247, 0.047, -13.118],
     "lorenz_stenflo": [0.449, 0.026, -2.736, -3.421],
     "hyper_xu": [1.042, 0.207, -0.003, -13.698],
@@ -58,9 +58,7 @@ def calibrate(name):
     rates = np.array([np.linalg.norm(source.Dg(x), 2) for x in s[::20]])
     fast = float(np.quantile(rates, 0.999))
     dt = min(0.01, 0.2 / fast)
-    # dominant period over a run of many cycles
     s0 = s[-1]
-    guess = abs(np.mean(source.g(s[:1000]) ** 2)) ** 0.5
     n_steps = min(2_000_000, int(round(2000.0 / dt)))
     traj = simulate(source.g, s0, dt, n_steps)
     x = traj[n_steps // 10 :]
@@ -70,7 +68,7 @@ def calibrate(name):
     drift = float(np.max(np.abs(x[:half].mean(0) - x[half:].mean(0)) / std))
     power = sum(np.abs(np.fft.rfft(c - c.mean())) ** 2 / np.var(c) for c in x.T)
     freqs = np.fft.rfftfreq(len(x), dt)
-    period = float(1 / freqs[1:][np.argmax(power[1:])])
+    period = float(np.sum(power[1:]) / np.sum(freqs[1:] * power[1:]))
     t_lyap = 5000.0
     lam = source_exponents(source, traj[-1], dt, min(2_000_000, int(t_lyap / dt)))
     lam2 = source_exponents(source, traj[-1], dt / 2, min(2_000_000, int(t_lyap / (dt / 2))))
@@ -79,8 +77,29 @@ def calibrate(name):
         "drift": drift, "period": period, "fast_rate": fast, "dt": dt,
         "lyap": lam.tolist(), "lyap_half_dt": lam2.tolist(),
         "t_lyap_used": min(2_000_000, int(t_lyap / dt)) * dt,
-        "dysts": DYSTS_SPECTRA.get(name), "g_rms": float(guess),
+        "dysts": DYSTS_SPECTRA.get(name),
     }
+
+
+AMPLITUDE = 6.0  # component std of the normalized sources, between Lorenz (~8.5) and Rossler (~4)
+LAMBDA_REF = 0.906  # Lorenz's lambda_1: under "lambda", all windows are Lorenz's existing ones
+LYAP_TIMES_TEST, LYAP_TIMES_SPECTRUM = 22.0, 180.0  # Lorenz's t_test = 25 and t_lyap = 200
+
+
+def arm_tables(calibration):
+    """Per-source Config overrides of the normalization arms (see scan.py --per-source)."""
+    ref_period = calibration["lorenz"]["period"]
+    arms = {"raw": {}, "lambda": {}, "freq": {}}
+    for name, c in calibration.items():
+        taus = {"raw": 1.0, "lambda": LAMBDA_REF / c["lyap"][0], "freq": c["period"] / ref_period}
+        for arm, tau in taus.items():
+            lam1 = tau * c["lyap"][0]
+            arms[arm][name] = {
+                "amplitude": AMPLITUDE, "time_scale": tau, "dt": min(0.01, 0.2 / (tau * c["fast_rate"])),
+                "t_test": max(25.0, LYAP_TIMES_TEST / lam1), "t_lyap": max(200.0, LYAP_TIMES_SPECTRUM / lam1),
+                "t_settle": 50.0 * max(1.0, c["period"] / tau),
+            }
+    return arms
 
 
 def main():
@@ -91,7 +110,10 @@ def main():
     with mp.get_context("spawn").Pool(a.workers) as pool:
         rows = pool.map(calibrate, sorted(SOURCES))
     a.out.parent.mkdir(parents=True, exist_ok=True)
-    a.out.write_text(json.dumps({r["name"]: r for r in rows}, indent=1))
+    calibration = {r["name"]: r for r in rows}
+    a.out.write_text(json.dumps(calibration, indent=1))
+    for arm, table in arm_tables(calibration).items():
+        (a.out.parent / f"per_source_{arm}.json").write_text(json.dumps(table, indent=1))
     for r in rows:
         if "error" in r:
             print(r["name"], r["error"])
