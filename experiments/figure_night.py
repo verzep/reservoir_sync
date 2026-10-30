@@ -19,6 +19,7 @@ LABELS = ["< −2", "−2…−1", "−1…−0.3", "−0.3…−0.05", "−0.05
 GAMMA_COLORS = {1.0: "#2a78d6", 5.0: "#eb6834", 20.0: "#1baf7a"}  # validated (all pairs, light)
 CLASSES = [("chaotic", "#2a78d6"), ("periodic", "#1baf7a"), ("fixed_point", "#eb6834"), ("diverged", "#9a9a94")]
 INK, MUTED, GRID = "#222220", "#6b6b66", "#e4e3de"
+NAMES = {"lorenz": "Lorenz", "rossler": "Rössler"}
 
 
 def _bin(perp):
@@ -40,7 +41,7 @@ def main():
     p.add_argument("scans", nargs="+", help="path:source")
     p.add_argument("--out", required=True)
     a = p.parse_args()
-    fig, axes = plt.subplots(2, len(a.scans), figsize=(5.2 * len(a.scans), 7), squeeze=False,
+    fig, axes = plt.subplots(2, len(a.scans), figsize=(3.3 * len(a.scans), 4.8), squeeze=False,
                              constrained_layout=True)
     x = np.arange(len(LABELS))
     for j, spec in enumerate(a.scans):
@@ -56,12 +57,12 @@ def main():
                 m = (b == k) & (gam == g)
                 v = np.concatenate([r["valid_times_lyap"] for r, mm in zip(recs, m) if mm]) if m.sum() >= 3 else []
                 ys.append(np.mean(np.asarray(v) < FAIL) if len(v) else np.nan)
-            ax.plot(x, ys, "-o", color=c, lw=2, ms=6, mec="white", mew=1.5, label=f"γ = {g:g}")
+            ax.plot(x, ys, "-o", color=c, lw=1.5, ms=4, mec="white", mew=0.8, label=f"γ = {g:g}")
         ax.set_ylim(-0.03, 1.03)
         ax.set_xticks(x, [])
-        ax.set_ylabel(f"fraction of starts with valid time < {FAIL:g} Lyapunov time", color=INK, fontsize=8)
-        ax.set_title(f"{source.capitalize()}  ({len(recs)} runs)", color=INK, fontsize=10, loc="left")
-        ax.legend(frameon=False, fontsize=8, labelcolor=INK)
+        ax.set_ylabel(f"fraction of starts below {FAIL:g} Lyapunov time", color=INK, fontsize=7)
+        ax.set_title(f"{NAMES.get(source, source)} ({len(recs)} runs)", color=INK, fontsize=9, loc="left")
+        ax.legend(frameon=False, fontsize=7, labelcolor=INK)
         style(ax)
         ax = axes[1, j]
         counts = np.array([[sum(1 for r, k in zip(recs, b) if k == kk and r["end_state"]["class"] == cls)
@@ -70,16 +71,16 @@ def main():
         frac = np.divide(counts, tot, out=np.zeros_like(counts), where=tot > 0)
         bottom = np.zeros(len(LABELS))
         for (cls, c), f in zip(CLASSES, frac):
-            ax.bar(x, f, bottom=bottom, color=c, width=0.7, edgecolor="white", linewidth=2,
+            ax.bar(x, f, bottom=bottom, color=c, width=0.7, edgecolor="white", linewidth=0.8,
                    label=cls.replace("_", " "))
             bottom += f
         for k, t in enumerate(tot):
-            ax.text(k, 1.02, f"{int(t)}", ha="center", va="bottom", fontsize=7, color=MUTED)
+            ax.text(k, 1.02, f"{int(t)}", ha="center", va="bottom", fontsize=6, color=MUTED)
         ax.set_ylim(0, 1.1)
-        ax.set_xticks(x, LABELS, rotation=35, ha="right")
-        ax.set_xlabel("λ⊥ along the synchronized trajectory (bin; count above)", color=INK, fontsize=8)
-        ax.set_ylabel("end state of the free run (fraction)", color=INK, fontsize=8)
-        ax.legend(frameon=False, fontsize=8, labelcolor=INK, ncol=4, loc="upper left", bbox_to_anchor=(0, -0.32))
+        ax.set_xticks(x, LABELS, rotation=40, ha="right", fontsize=6)
+        ax.set_xlabel("λ⊥ along the synchronized trajectory (count above)", color=INK, fontsize=7)
+        ax.set_ylabel("end state (fraction)", color=INK, fontsize=7)
+        ax.legend(frameon=False, fontsize=6.5, labelcolor=INK, ncol=4, loc="upper left", bbox_to_anchor=(-0.05, -0.48), columnspacing=0.8, handlelength=1.2)
         style(ax)
     fig.savefig(a.out, dpi=140, facecolor="white")
     print(a.out)
