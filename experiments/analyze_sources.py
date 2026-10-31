@@ -27,7 +27,7 @@ from analyze_night import FAIL, UNSTABLE, load, table, within_gamma
 
 # every third source by lambda_1 / |lambda_min|, Lorenz and Rossler kept for
 # discovery since they motivated the question; set by select_held_out, frozen here
-HELD_OUT: tuple = ()
+HELD_OUT = ("arneodo", "dadras", "hadley", "halvorsen", "hyper_lorenz", "thomas")
 
 AMBIGUOUS = 0.1  # lambda_perp within this fraction of lambda_1 from 0 or lambda_1
 N_BOOT = 10000

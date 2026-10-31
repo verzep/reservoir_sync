@@ -75,3 +75,13 @@ def test_scan_per_source_overrides(tmp_path):
     assert {(c.t_lyap, c.dt) for c in grid if c.source == "rossler"} == {(2000.0, 0.02)}
     plain, _, _ = scan.parse_grid(argv)
     assert {c.t_lyap for c in plain} == {200.0}
+
+
+def test_kaplan_yorke_and_holm():
+    import sys
+
+    sys.path.insert(0, str(Path(__file__).parents[1] / "experiments"))
+    from analyze_sources import holm, kaplan_yorke
+
+    assert kaplan_yorke([0.906, 0.0, -14.57]) == pytest.approx(2.062, abs=1e-3)
+    np.testing.assert_allclose(holm(np.array([0.01, 0.04, 0.03])), [0.03, 0.06, 0.06])
