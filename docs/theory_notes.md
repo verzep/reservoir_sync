@@ -1,166 +1,250 @@
 # Theory notes: what can be proved about closing the loop
 
-Status of this document: **incomplete, written under a usage limit.**
-- All derivations are by hand. **No numerical check was run** (uranus was never used). Items flagged "test" below are still open.
-- Labels: PROVED (full proof here), SKETCH, CONJECTURE, FALSE. "PROVED" means proved here and not independently checked.
-- Literature (section 5) was only partly read; each entry says how much.
+Labels: PROVED (full proof here), SKETCH, CONJECTURE, FALSE. "Checked" means a numerical test on uranus; scripts are in `experiments/theory/`. Nothing here has been refereed. Proofs are mine and unreviewed.
 
-Notation: A = A_c, B = B_c along the driven orbit, G = Dg(s(t)), F = Dphi(s(t)) when it exists, C(t) = Dpsi(r(t)) (= N^T for a linear decoder), Q = I - F C, J = A + B C, Phi = Phi_c, ||Phi(t,tau)|| <= c e^{-kappa(t-tau)}.
+Notation. A = A_c, B = B_c along the driven orbit, G = Dg(s(t)), F = Dphi(s(t)) when it exists, C(t) = Dpsi(r(t)) (= N^T for a linear decoder), Q = I - F C, J = A + B C, K(t,tau) = C(t) Phi(t,tau) B(tau), with ||Phi(t,tau)|| <= c e^{-kappa(t-tau)}.
+
+**Short version.**
+1. The paper has three errors, all repairable (section 1).
+2. The transverse dynamics are zero dynamics. I - K factorizes exactly, in the nonlinear time-varying case, into a source-tangent factor and a reduced filter. This gives the right restricted gain, which certifies stability on tests where the naive gain cannot (section 3). The linear part of this picture is now mostly known (Saqib & Padoan 2026); the time-varying and non-differentiable forms appear new.
+3. No closed form in (lambda_perp, largest CLE, loop gain) exists, and no function of CLEs and reconstruction error can decide stability, including for chaotic sources with non-differentiable phi (section 3.5).
+4. Imperfect reconstruction: three theorems, none covering generic non-differentiable reservoirs on non-hyperbolic sources. Non-uniform transverse stability provably does not give an O(e) sup bound in general (section 4).
 
 ## 1. Audit of Section 3
 
-**Prop. 1 (no-derivative conjugacy): correct.** Uniform contraction is not used, only continuity, compactness and uniqueness. Solutions of the closed loop need only exist on M, where they do.
+**Prop. 1: correct.** Uniform contraction is not used. Solutions need only exist on M.
 
-**Prop. 2 (surviving tangents): proof correct line by line.** Checked: segment averaging on the compact convex hull, robustness of contraction on (-inf,t], dominated convergence, N^T y = xi, the exponent bounds. Remarks:
-- A_s must be invariant in both time directions (the integral runs to -inf). Implicit in the paper.
-- "Gain exactly one" should read "eigenvalue one": K xi = xi says nothing about the operator norm of K.
-- Assumption 3 requires contraction on *every* orbit in A_s, including embedded fixed points and periodic orbits. The Lorenz origin is an example, and there dim D also drops because g = 0. The numerics measure the largest CLE for the natural measure only, which can be much more negative than -kappa. The paper's numerics therefore do not verify the assumption.
+**Prop. 2: proof correct line by line.** Checked: segment averaging on the compact convex hull, robustness of contraction on (-inf,t], dominated convergence, N^T y = xi, both exponent bounds. Notes:
+- A_s must be invariant in both time directions. Implicit in the paper.
+- "Gain exactly one" should read "eigenvalue one": K xi = xi says nothing about the operator norm.
+- Assumption 3 requires contraction on *every* orbit in A_s, including embedded fixed points and periodic orbits. The numerics measure the largest CLE for the natural measure, which does not verify the assumption.
+- dim D is not constant on Lorenz: at the origin g = 0 and D has dimension one. "Constant dimension along the orbit" holds a.e., not on all of A_s.
+- Extension to tempered contraction: not obtained. y is defined and solves y' = Jy for tempered xi, but N^T y = xi uses the limit r_eps - r, whose perturbation of A has only a continuity modulus. With phi Holder and unstable directions the perturbation decays backward and a tempered argument looks feasible (SKETCH, not done). Open.
 
-**Spectrum claim (exponents on E plus quotient = closed-loop spectrum): correct** for an ergodic measure, a measurable invariant E, and the quotient norm: a block-triangular cocycle has the union of the diagonal spectra. The identification of ker N^T with the quotient for k = d needs the angle between E and ker N^T to be tempered. This holds if xi -> y is bounded, which is clear for uniformly hyperbolic D.
+**Spectrum claim: correct** for an ergodic measure and measurable invariant E, with the quotient norm (block-triangular cocycle). The identification of ker N^T with the quotient for k = d needs a tempered angle between E and ker N^T.
 
-**ERROR 1 (Prop. 3): "E = TM" is false as stated.** E is defined from backward-admissible directions. Those must be backward bounded, so they exclude every direction with a negative exponent. For Lorenz, k = 2 and dim TM = 3. Correct statement: E is contained in Im Dphi, which is a larger J-invariant bundle. Redefine the bundle in the smooth case.
+**ERROR 1 (Prop. 3, "E = TM"): false as stated.** E is built from backward-bounded directions, so it excludes all directions with negative exponents. For Lorenz k = 2 and dim TM = 3. Correct: E is contained in Im Dphi, a larger J-invariant bundle. Saqib & Padoan do not hit this because their assumptions make the exosystem neutral on its set (their A3 and A7), so range Pi is all of it.
 
-**ERROR 2 / hidden assumption (Prop. 3, eq. differential_inverse): N^T Dphi = I does not follow from exact reconstruction on A_s.** Differentiating N^T phi = id on A_s gives the identity only on the tangent cone of A_s.
-- Counterexample (PROVED): source with attracting circle rho' = -2(rho-1)-type radial dynamics, theta' = 1, so A_s is the unit circle with s(t) = (cos t, sin t). Take a linear reservoir with W Phi0 + V = Phi0 L0, where L0 is the rotation generator, and N^T Phi0 = I. Reconstruction on A_s is exact. The closed loop is the linear W + V N^T, whose spectrum contains +-i, i.e. exponents 0, 0. The source has exponents 0, -2. So the closed-loop spectrum is not "source exponents plus transverse exponents of QA", because -2 is absent.
-- Repair: assume exactness on an open neighbourhood, or assume the tangent cones of A_s span R^d (LEMMA, PROVED: a C^1 function vanishing on X has derivative vanishing on the tangent cone of X). The cone condition plausibly holds for transversely Cantor attractors with phi C^1. Not checked for Lorenz.
+**ERROR 2 (Prop. 3, eq. differential_inverse): N^T Dphi = I does not follow from exact reconstruction on A_s.** Differentiating gives it only on the tangent cone of A_s.
+- FALSE, by example. Attracting circle (rho radial exponent -2, angular speed 1), linear reservoir with W Pi + V = Pi L0, N^T Pi = I. Reconstruction on A_s is exact. The closed-loop spectrum contains +-i, i.e. 0, 0, while the source has 0, -2. Checked with kappa = 4 > 2, so a smooth phi exists: |N^T F e_t - e_t| = 3.5e-12 and |N^T F e_r - e_r| = 0.70.
+- Repair (PROVED): assume exactness on a neighbourhood, as in Bizyaeva et al. Prop. III.1 where the exact identity holds on X, or assume the tangent cones of A_s span R^d (a C^1 function vanishing on X has derivative vanishing on the tangent cone of X).
+- With the repair, the computation in Prop. 3 is correct and needs only a bounded F solving F' = AF + B - FG with N^T F = I.
 
-With that repair, the *computation* in Prop. 3 is correct. It needs only a bounded F solving F' = AF + B - FG with N^T F = I; C^2 is more than necessary.
+**ERROR 3 (Section 4, "only if" kernel invariance): false as a spectral claim.** QB = 0 also makes the transverse exponents conditional ones (3.4), without invariance. Checked: |QV| = 7e-15, |N^T W K| = 6.3, lambda_perp in spec(W) to 3e-15. Oishi et al. Theorem 1 has the linear case.
 
-**ERROR 3 (Section 4): "They reduce to the same action on transverse directions only if A ker N^T subset ker N^T" is false as a spectral claim.** See the dual statement in 3.3: if Q B = 0 the transverse exponents are also CLEs, without kernel invariance. Explicit example: n = 2, N^T = (0,1), F = (f,1)^T an eigenvector of W with eigenvalue a, V = (mu - a)F. Then lambda_perp = b, the other eigenvalue of W, while N^T W e_1 != 0 in general.
+**Rate condition is not necessary (PROVED, checked).** The paper's Remark and J. Hart's heuristic say a direction with exponent below -kappa need not be reproduced. "Need not" is right, but failure is not forced: in family (F) of 3.2, kappa = 1.08 and J still has exponent -14.57 exactly, because phi is smooth by construction. Checked: J exponents (0.906, -0.002, -0.878, -14.57).
 
-**Prop. 4: proof correct, but the hypothesis is very restrictive.** N^T A = M(t) N^T says the decoded variable obeys a closed equation. In the linear case M + N^T V = L, i.e. shat' = L shat + N^T V (s - shat), which is a **Luenberger observer**. The proposition is a separation principle for surrogates containing a copy of the source model. It does not hold for a generic tanh reservoir.
+**Prop. 4: correct but very restrictive.** N^T A = M(t) N^T says the decoded variable obeys a closed equation; in the linear case shat' = L shat + N^T V (s - shat), a **Luenberger observer**. It is a separation principle for surrogates containing a model copy.
 
-**Further remarks.**
-- The Section 4 counterexample is correct (checked: W Phi + V = Phi L, H(z) = (z-1)/(z^2+2z+7)), but its attractor is the single point {0}. A chaotic version (PROVED, by direct substitution): for any source g, take y' = g(s) + k(s-y) + C eta, eta' = E eta + D(y-s), with k > E > 0 and CD < -kE. Then phi(s) = (s,0) and N^T = (I,0) are exact, and the driven block [[-k,C],[D,E]] is Hurwitz. The closed loop has eta' = E eta, so lambda_perp = E > 0.
-- **Linear reservoirs and chaos are incompatible with exactness (PROVED).** s = T*s with T(z) = N^T(z-W)^{-1}V forces T(iw) = I on the spectral support of s. T is rational and strictly proper, so T - I cannot vanish on an infinite set. Hence the spectrum is finite and the source quasi-periodic. Eq. linear_fiber_relations is vacuous for a chaotic source.
-- Moreover, linear closed loops have no isolated nonlinear attractor. If the frequency set of the source exceeds its dimension, every frequency present is a closed-loop eigenvalue and lambda_perp = 0 exactly.
+**Counterexample of Section 4: correct, but its attractor is a point.** A chaotic exact version is (F) in 3.2. Saqib & Padoan Sec. V-A have the sinusoidal one.
+
+**Linear reservoir + chaos (PROVED; known).** s = T*s forces T(iw) = I on the spectral support; T is rational and strictly proper, so the support is finite. Saqib & Padoan Cor. 7 state the same restriction via a linear internal model. So eq. linear_fiber_relations is vacuous for chaotic sources.
+
+Other sections checked and found correct: g_error_decomposition, affine forms, training_residual_identity, dmd_result, off_manifold_g_error, Lemma y = r' for xi = g.
 
 ## 2. General C^1 decoder
 
-No reservoir structure is used anywhere below: only f C^1, phi continuous mapping orbits to driven solutions, and (for Prop. 2) uniform contraction. The results hold for any synchronized surrogate.
+No reservoir structure is used: only f C^1, phi continuous mapping orbits to driven solutions, and uniform contraction for Prop. 2. All results hold for any synchronized surrogate.
 
-**PROVED (same proofs).**
-- Prop. 1 with psi phi = id. The closed-loop solution, the conjugacy and ghat = g follow from d/dt psi(r(t)) = s'.
-- J = A + B C(t), with Volterra equation u = C(t) Phi dx0 + int K u, K = C(t) Phi(t,tau) B(tau).
-- Prop. 2: C(t) y = xi, using psi(r_eps) - psi(r) = C w + o(|w|) and w = O(eps).
-- Quotient definition of the transverse exponents, unchanged. E cap ker C(t) = 0.
+**PROVED (same proofs).** Prop. 1 with psi phi = id; J = A + B C(t); u = C(t) Phi dx0 + int K u; Prop. 2 with C(t) y = xi (from psi(r_eps) - psi(r) = C w + o(|w|), w = O(eps)); the quotient definition; E cap ker C(t) = 0.
 
-**PROVED (moving kernel; psi C^2, phi smooth as in Prop. 3).** With CF = I, differentiating gives C'F + CF' = 0, and the F equation gives CAF + CB + C'F = G. For dx = F u + eta, u = C dx:
+**PROVED (moving kernel; psi C^2, bounded F, CF = I).** Differentiating gives C'F + CF' = 0, and the F equation gives **CAF + CB + C'F = G**. For dx = F u + eta, u = C dx:
 
     u'   = G u + (C' + C A) eta
     eta' = (Q A - F C') eta = (Q A + Q') eta   on ker C(t)
 
-The extra term is -F C' eta = -F D^2 psi(r)[r', eta]. It is the turning of the kernel. Block-triangularity survives. What is lost: flat fibers (the level sets of psi are curved, ker C is only their linearization) and the exact N^T-linearity of the off-manifold formula.
+The extra term is -F C' eta = -F D^2 psi(r)[r', eta], the turning of the kernel. Block-triangularity survives. Lost: flat fibers, fixed kernel, and exactness of the off-manifold formula.
 
-**Prop. 4 reformulated (PROVED).** Hypothesis: Phi(t,tau) ker C(tau) = ker C(t), i.e. the kernel bundle is driven-invariant, equivalently (C' + CA) = 0 on ker C when C is C^1 in t. Then J = A on it, its exponents are <= -kappa, and the decoded quotient is C' R + C A R + C B for any right inverse R.
+**Prop. 4 reformulated (PROVED).** Hypothesis: Phi(t,tau) ker C(tau) = ker C(t), equivalently C' + CA = 0 on ker C. Then J = A on it, exponents <= -kappa, and the decoded quotient is C'R + CAR + CB for any right inverse R.
 
-**SKETCH.** A C^2 submersive psi is locally a linear decoder in coordinates (psi, rho); the extra term is the coordinate change. Global existence near a merely continuous M was not established.
+**Why this matters for linear readouts (PROVED).** If e is C^1 small on a neighbourhood, psi0 = (id+e)^{-1} psi is an exact decoder, and it is nonlinear even if psi is linear. So the nonlinear theory is the correct exact reference for imperfect linear readouts.
 
-**Observation-driven variant (PROVED).** If the drive is h(s) and psi phi = h, then invariance and semi-conjugacy still hold; conjugacy needs phi injective.
+**SKETCH.** A C^2 submersive psi is locally a linear decoder in coordinates (psi, rho). Global existence near a merely continuous M was not established.
+
+**Observation-driven variant (PROVED).** With drive h(s) and psi phi = h, invariance and semi-conjugacy hold; conjugacy needs phi injective.
 
 ## 3. Predictive criterion
 
-Remark: lambda_perp is already computable before closing the loop (J along the driven orbit). The useful question is which simpler quantities decide it.
+lambda_perp is already computable before closing the loop (J along the driven orbit). The useful question is which simpler quantity decides or bounds it.
 
-### 3.1 Linear case: transverse spectrum = transmission zeros (PROVED)
+### 3.1 Linear case
 
-Take W Hurwitz, W Phi + V = Phi L, N^T Phi = I, T(z) = N^T(z-W)^{-1}V. Substituting V = (z-W)Phi - Phi(z-L):
+Take W Hurwitz, W Pi + V = Pi L, N^T Pi = I, T(z) = N^T(z-W)^{-1}V. Substituting V = (z-W)Pi - Pi(z-L):
 
-    I - T(z) = H(z) (zI - L),   H(z) = N^T (zI - W)^{-1} Phi
-    det H(z) = chi_perp(z) / chi_W(z)
+    I - T(z) = H(z) (zI - L),   H(z) = N^T (zI - W)^{-1} Pi,   det H(z) = chi_perp(z) / chi_W(z)
 
-So the source factor is deflated exactly, and **the transverse eigenvalues are the zeros of H**, i.e. the zero dynamics of (W, Phi, N^T). Directly: holding y = N^T x at 0 forces x' = QWx. **Transverse stability is the minimum-phase property of the reservoir from tangent input to readout.** The counterexample is a non-minimum-phase filter.
+PROVED, checked to 3e-13. **The transverse eigenvalues are the zeros of H, i.e. the zero dynamics of (W, Pi, N^T).** Transverse stability is the minimum-phase property of the reservoir from tangent input to readout. The paper's counterexample has H = (z-1)/(z^2+2z+7).
 
-Consequences (all PROVED):
-- **Nyquist.** Winding of det(I - T(iw)) counts (unstable source eigenvalues + unstable transverse eigenvalues); the locus passes through 1 at imaginary source eigenvalues. Equivalent cleaner form: lambda_perp < 0 iff (z+a)H(z) has no RHP zeros, which is a winding count, with a > 0.
-- **Restricted small gain.** (z+a)H(z) - I = N^T (W+a)(z-W)^{-1} Phi. If sup_w ||N^T (W+a)(iw-W)^{-1} Phi|| < 1 for some a > 0, all transverse eigenvalues are stable (Rouche). This is the right replacement for ||T||.
-- **Exact frequency integral** (Jensen/Bode type; any N, no exactness needed):
-  (1/2pi) int log|det(I - T(iw))| dw + (1/2) tr(N^T V) = sum over Re c_i > 0 of Re c_i, with c_i the closed-loop eigenvalues. For exact N, subtract the unstable source part to get the sum of unstable transverse rates.
-- **Pole placement, a no-go.** For d = 1 and (W,Phi) controllable, N -> numerator of H is a bijection onto monic polynomials of degree n-1 under N^T Phi = 1, so **any transverse spectrum is attained by some exact N**. Zero training error and fixed CLEs therefore place no constraint on lambda_perp: **no function of the CLEs and the reconstruction error can decide stability.** Only d = 1 is proved; generic d > 1 is a CONJECTURE.
-- **Cancellation.** For d = 1, lambda_perp equals an eigenvalue of W iff there is a pole-zero cancellation, i.e. an unobservable or uncontrollable mode. Prop. 4 is the unobservable case, Q V = 0 a controllable-subspace case.
+Status: the spectral content (triangular form, assignability) is known from Saqib & Padoan; T = I at source eigenvalues is their moment matching; the characteristic equation det(I - T) = 0 and Nyquist are in Rivkind & Barak for fixed points. I did not find the factorization, the identification with zeros, or the items below in what I read.
 
-### 3.2 Time-dependent: exact factorization and small gain (PROVED)
+Consequences (PROVED, checked):
+- **Exact count.** (z+a)H(z), a > 0, has winding number equal to the number of unstable transverse eigenvalues. Checked 0 mismatches of 60.
+- **Restricted small gain.** For any d x d matrix M: (zI + M)H(z) - I = (N^T W + M N^T)(z-W)^{-1} Pi. If its H-infinity norm is < 1 then H has no RHP zeros. The naive gain ||T|| is >= 1 always. Checked over 300 random cases with 146 stable: M = aI certifies 51, M = -N^T W R0 certifies 28, no false certificates.
+- **Frequency integral (Jensen/Bode type, any N).** (1/2pi) int log|det(I-T(iw))| dw + (1/2) tr(N^T V) = sum over Re c_i > 0 of Re c_i, c_i the closed-loop eigenvalues. Checked to 5e-4 (quadrature). It is an exact closed form for the total unstable transverse rate.
+- **Assignability for every d.** Identify ker N^T with R^n/Im Pi through a section sigma = sigma0 + Pi X. Then QW|ker becomes piW sigma0 + piW Pi X, a state-feedback problem. If (W, Pi) is controllable, any conjugate-closed multiset is attained by an exact N (Wonham). Checked d = 2 to 3e-7, including unstable targets. Known: Saqib & Padoan Remark 1 by PBH.
+- **Cancellation.** For d = 1, lambda_perp is an eigenvalue of W iff there is a pole-zero cancellation, i.e. an unobservable or uncontrollable mode. Prop. 4 is the first, QV = 0 a form of the second.
 
-Requires bounded F with F' = AF + B - FG and N^T F = I. Using d/dtau[Phi(t,tau)F(tau)] = Phi(F' - AF):
+### 3.2 Nonlinear time-varying, smooth: exact factorization (PROVED; appears new)
+
+Assume a bounded F with F' = AF + B - FG, N^T F = I. Using d/dtau[Phi(t,tau)F(tau)] = Phi(F' - AF):
 
     (I - K)u = H[(d/dt - G)u] + N^T Phi(t,t0) F(t0) u(t0),   H(t,tau) = N^T Phi(t,tau) F(tau),  H(t,t) = I
 
-The kernel of (d/dt - G) is the source tangent flow, which is the gain-one part of K. With v := u' - G u = N^T A eta:
+The kernel of (d/dt - G) is the source tangent flow, the eigenvalue-one part of K. With v := u' - Gu = N^T A eta, eta0 = Q dx0 and w(t) := N^T Phi(t,t0) eta0:
 
-    v(t) = N^T A(t) Phi(t,t0) eta0 + int R(t,tau) v(tau) dtau,   R(t,tau) = -N^T A(t) Phi(t,tau) F(tau)
+    int_{t0}^t H(t,tau) v(tau) dtau = w(t)                     (first-kind Volterra)
     eta(t) = Phi(t,t0) eta0 - int Phi(t,tau) F(tau) v(tau) dtau
 
-**Theorem (restricted small gain).** If sup_t int ||R(t,tau)|| e^{sigma(t-tau)} dtau < 1 for some 0 <= sigma < kappa, then all transverse exponents are <= -sigma. Proof: a weighted Gronwall/contraction bound on v gives |v| <= const e^{-sigma t}, and the eta formula then gives the same rate. Corollaries:
-- lambda_perp <= -kappa + c ||F N^T A|_ker||. This follows directly from QA = A - F N^T A and gives a closed form relating lambda_perp and kappa, with the *restricted* loop in place of B N^T.
-- With rate condition Lambda < kappa, ||F|| <= c c_s ||B|| / (kappa - Lambda), so the bound diverges at the rate threshold. Likely loose (test).
+So lambda_perp < 0 iff the time-varying filter H has an exponentially stable inverse: eta' = QA eta is its inverse dynamics (for x' = Ax + Fv, y = N^T x, holding y = 0 forces v = -N^T A x). For any bounded M(t), differentiate and add M w:
 
-**Loop identity (PROVED).** Applying N^T to the F equation: **N^T A F + N^T B = G.** So R(t,t) = N^T B - G. Zero-lag loop gain minus the source Jacobian is the restricted gain.
+    v(t) = (N^T A + M N^T)(t) Phi(t,t0) eta0 + int R_M(t,tau) v(tau) dtau,   R_M(t,tau) = -(N^T A(t) + M(t) N^T) Phi(t,tau) F(tau)
 
-**Liouville sum rule (PROVED; first equality needs no exactness).**
+**Theorem (restricted small gain).** If sup_t int ||R_M(t,tau)|| e^{sigma(t-tau)} dtau < 1 for some 0 <= sigma < kappa and some bounded M, all transverse exponents are <= -sigma.
+Proof. Set v_s = e^{sigma t} v. Then |v_s(t)| <= c' + g sup_{tau<=t}|v_s(tau)| with g < 1, so v = O(e^{-sigma t}). The eta formula with sigma < kappa gives the same rate for eta. QED.
 
-    sum all J exponents = sum CLE + <tr C B>
-    sum lambda_perp = sum CLE + <tr N^T B> - sum source exponents   (k = d or smooth case)
+Choice M = -N^T A R0, R0 = N(N^T N)^{-1}, gives R_M = -N^T A Q0 Phi F with Q0 = I - R0 N^T: **only the readout's sensitivity to invisible directions, times the invisible response to tangent input**. If N^T A Q0 = 0 the gain is zero, so Prop. 4 is the zero-gain case. If Q0 Phi F vanishes the gain also vanishes.
 
-This gives a driven-phase certificate of instability: (n-d) lambda_perp_max >= the right side. For n = d+1 it is an **exact closed form**. Example, phi = (s, h(s)), with z-block A22 - Dh A12: lambda_perp = A22 - A12 <Dh>. It explains one effect of an N^T B penalty: each unit of trace adds one unit to the transverse sum. For n large the bound on the maximum is weak.
+Direct corollary: lambda_perp <= -kappa + c ||F N^T A|_ker||, from QA = A - F N^T A.
 
-**Answer to the question asked: no closed form in (lambda_perp, largest CLE, loop gain) exists (PROVED).** With n = d+1, changing the second eigenvalue of W leaves the largest CLE and N^T V fixed but moves lambda_perp.
+**Exact test family (F).** Lorenz source, r = (y, z), h'(s_3) = amp sech^2((s_3-27)/4), c = (0,0,-1):
 
-### 3.3 Geometry (PROVED)
+    y' = g(s) - k(y-s) + c (z - h(s)),   z' = h'(s_3) g_3(s) + D.(y-s) + E (z - h(s))
 
-- **Gap has no universal sign: "lambda_perp > largest CLE" is FALSE as a theorem.** W symmetric, n = 3, d = 2, min-norm N: QW|ker is a compression, so lambda_perp <= lambda_max(W) (Cauchy interlacing). The observed positive gap needs non-normality or obliquity.
-- **Energy bound.** With R = N(N^T N)^{-1}, F = R + Dzeta, Dzeta in ker N^T (zeta from phi = Rs + zeta(s)):
-  lambda_perp <= mu_2(A) + ||Dzeta|| ||N^T A|_ker||, with mu_2 the log norm. Corollary: min-norm N, linear phi and Euclidean-contracting A give stability. Instability is carried by the readout-invisible part of the tangent.
-- **Passivity.** If S' + SA + A^T S <= -2 sigma S and S F = N M(t) (Q is S-orthogonal), then lambda_perp <= -sigma. This is a positive-real condition on H. The relevant control result is Byrnes-Isidori-Willems 1991 (section 5).
-- **Dual of Prop. 4.** In (u, eta) the driven system is u' = (G - N^T B)u + N^T A eta, eta' = -QB u + QA eta. The driven and closed-loop transverse dynamics differ only through the product (QB)(N^T A). If QB = 0 or N^T A|ker = 0, the transverse exponents are CLEs. Kernel invariance is sufficient, not necessary.
-- **Right-inverse block form (no phi derivative, any N).** For any C^1 right inverse R: u' = G_R u + N^T A eta, eta' = Q_R A eta + Z_R u, with G_R = N^T(AR+B), Z_R = Q_R(AR+B) - R'. Z_R = 0 is a Riccati equation for a J-invariant complement of ker N^T.
+phi = (s, h(s)) and N^T = (I, 0) are exact. With chi = z - h(y) the closed loop is **exactly** y' = g(y) + c chi, chi' = a(y) chi, a = E + amp sech^2((y_3-27)/4). So lambda_perp = <a>, a closed form. CLEs are constant.
 
-**SKETCH, penalty mechanism for tanh reservoirs.** N^T B = gamma N^T D V and N^T A|ker = gamma N^T D W|ker share the factor N^T D(t). Penalizing N^T B shrinks ||N^T D|| only if V does not align badly, so this is heuristic. The loop identity also suggests the target is N^T B close to G, not 0 (CONJECTURE, test).
+Checks:
+| E, amp | J exponents | <a> | largest CLE |
+|---|---|---|---|
+| -1, 0.5 | 0.906, -0.002, -0.878, -14.57 | -0.876 | -1.08 |
+| -1, 3 | 0.906, -0.001, -0.259, -14.57 | -0.258 | -1.08 |
+
+Note the second row: lambda_perp exceeds the largest CLE by 0.82 with an exact, smooth, chaotic, transversely stable system.
+
+Restricted gain with M = -N^T A R0 (kappa is the driven rate, truth from sup a):
+| E, amp, D | kappa | gain at sigma = 0 | largest certified sigma tested | truth |
+|---|---|---|---|---|
+| -3, 0.5, 0.3 | 3.16 | 0.09 | 2.85 (0.98) | sup a = -2.5, <a> near -2.9 |
+| -1, 0.5, 0.3 | 1.08 | 0.24 | 0.81 (0.81) | <a> = -0.88 |
+| -0.2, 0.1, 0.3 | 0.26 | 0.34 | 0.13 (0.66) | sup a = -0.1 |
+| -1, 3, 0.3 (non-uniform) | 1.08 | 1.13 | none | <a> = -0.26, sup a = 2 |
+| 2, 0.5, 12 (unstable) | 1.0 | 6.4 | none | <a> > 0 |
+| 0.5, 0.2, 5 (unstable) | 0.65 | 2.1 | none | <a> > 0 |
+
+With M = 0 the gain was above 1 on every case (1.06, 1.09), so **the shift M is essential**. Note 0.13 and 0.81 are lower bounds on -lambda_perp that are consistent with truth, and that sigma < kappa limits certificates to rates below kappa. The certificate is a uniform one: it fails on the non-uniform stable case, which is correct behaviour for a sup-based gain (see 4.4).
+
+Loop identity (PROVED): **N^T A F + N^T B = G**, so R_0(t,t) = N^T B - G. Zero-lag loop gain minus source Jacobian is the restricted gain at zero lag.
+
+### 3.3 Non-differentiable phi: the quotient operator (PROVED; appears new)
+
+Saqib & Padoan, Bizyaeva et al. do not treat this case. Let D be the admissible bundle, frame Xi(t) with Xi' = G Xi, Y the image frame (Y' = JY, N^T Y = Xi). Choose a C^1 left inverse L(t), L Xi = I_k. Write x = Y a + zeta with L N^T zeta = 0. Then zeta' = J zeta - Y a', and differentiating the constraint gives a' = (L' N^T + L N^T J) zeta, so
+
+    zeta' = [J - Y (L' N^T + L N^T J)] zeta   on W(t) = ker(L N^T)
+
+This is the quotient cocycle in coordinates (W(t) is complementary to E). If S(t) = ker L is G-invariant, L' = -LG, and using G u_S in S:
+
+    zeta' = Q_E J zeta,   Q_E = I - Y L N^T
+
+**So in the non-differentiable case QA is replaced by Q_E J, with k < d.** On ker N^T it is QA-like; on the extra d-k decoded directions the feedback B N^T survives. The source's stable exponents do not appear. The equation does not contain G on S, which is why those exponents are not reproduced in general. Checked for k = 2, d = 3 to 6e-10.
+
+(I - K) analogue: with u = Xi a + u_S,
+
+    u_S(t) = N^T Phi(t,t0) zeta0 - int N^T Phi(t,tau) Y(tau) a'(tau) dtau + int K(t,tau) u_S(tau) dtau
+
+The gain-one part (Xi a) is deflated; the rest of K still acts on u_S.
+
+**Bound (PROVED).** lambda_perp <= -kappa + c sup ||Q_E B N^T|_W - Y L N^T A|_W||. Probably far too loose to be useful in practice (not tested on reservoirs).
+
+**Sum rule without smoothness (PROVED, checked to 3e-10).**
+
+    sum over quotient exponents = sum CLE + <tr C B> - sum over D exponents
+
+with n-k quotient exponents, so (n-k) lambda_perp >= sum CLE + <tr C B> - sum_D lambda. This is a driven-phase instability certificate that needs no smooth phi and no exact source stable exponent. It is exact for n - k = 1. It explains one effect of an N^T B penalty: each unit of trace adds exactly one unit to the transverse sum. For large n it is weak, because the bulk of tr A dominates. Checked in (F) to three decimals.
+
+**Riccati form (PROVED).** For any C^1 right inverse R and any N: u' = G_R u + N^T A eta, eta' = Q_R A eta + Z_R u, G_R = N^T(AR+B), Z_R = Q_R(AR+B) - R'. A bounded solution of Z_R = 0 is exactly a d-dimensional J-invariant complement of ker N^T. Whether one exists when phi is not C^1 is open.
+
+### 3.4 Geometry (PROVED, checked)
+
+- **Gap has no universal sign. "lambda_perp > largest CLE" is FALSE as a theorem.** Symmetric W, min-norm N: QW|ker is a compression, so lambda_perp <= lambda_max(W). Checked: max difference -1.6e-4 over 300 cases. The observed positive gap needs non-normality or obliquity.
+- **Energy bound.** With F = R0 + Dzeta, Dzeta in ker N^T (phi = R0 s + zeta(s)): lambda_perp <= mu_2(A|ker) + ||Dzeta|| ||N^T A|_ker||. Checked: no violations in 300, median slack 6.5, so loose. Corollary: min-norm N, flat M, Euclidean contraction give stability. Instability is carried by the readout-invisible geometry and non-normality.
+- **Passivity.** If S' + SA + A^T S <= -2 sigma S and S F = N M(t) (Q is S-orthogonal), lambda_perp <= -sigma. A positive-real condition on H.
+- **Dual of Prop. 4.** The driven system in (u, eta) is u' = (G - N^T B)u + N^T A eta, eta' = -QB u + QA eta. Driven and closed-loop transverse blocks differ only through (QB)(N^T A). If QB = 0 or N^T A|ker = 0 the transverse exponents are CLEs.
+
+### 3.5 No-go results
+
+**Theorem (PROVED, checked).** There is no function of (the CLEs, e, the source) that decides lambda_perp, also for chaotic sources and non-differentiable phi.
+Proof. Take any source g and the family y' = g(s) + k(s-y) + c eta, eta' = E eta + D(y-s), plus optionally a slave w' = -b w + y, with b below the source's contraction rate. Then phi = (s, 0, psi(s)) with psi generically non-differentiable, N^T = (I, 0, 0) gives e = 0. The driven (y, eta) block is [[-k, c],[D, E]]. Fix trace and determinant: k = E - tr, cD = -kE - det. Then the CLEs are fixed, while in the closed loop eta' = E eta, so lambda_perp = E is any real number. Checked: fixed eigenvalues -2 +- 3i with E = -2, 0.5, 3. QED.
+
+Linear version (Saqib & Padoan eq. 32): same reservoir, different exact readout. The theorem above extends the principle to chaos and non-smooth maps, but with different reservoirs. For a fixed reservoir and chaotic source there is no family of exact readouts. An empirical analogue is tested below.
+
+**Closed form: no (PROVED).** With n - k = 1, moving the second eigenvalue of W leaves the largest CLE and N^T V fixed and moves lambda_perp. So no formula in (lambda_perp, largest CLE, loop gain) alone exists. What exists: two-sided identities in the *sum* (3.3), an exact integral in the linear case (3.1), and sufficient gains (3.2).
+
+**SKETCH, N^T B penalty on tanh reservoirs.** N^T B = gamma N^T D V and N^T A|ker = gamma N^T D W|ker share the factor N^T D(t), so penalizing the first also shrinks the coupling ||N^T A|_ker||, if V does not align badly. The loop identity suggests the natural target is N^T B near G rather than 0 (CONJECTURE).
 
 ## 4. Imperfect reconstruction
 
-Normal hyperbolicity is not the right frame for merely continuous phi. Three different statements survive.
+Bizyaeva et al. Prop. IV.1 give the Gronwall bound with closed-loop Lipschitz constant. That is the baseline (known). Normal hyperbolicity relative to a manifold is the wrong frame when phi is merely continuous.
 
-**4.1 Finite time (PROVED).** r(t) = phi(s(t)) solves r' = G(r) + d, |d| <= L_s |e|. Gronwall gives |x - r| <= (L_s E0 / Lambda)(e^{Lambda t} - 1).
+**4.1 Tube theorem under uniform transverse contraction (PROVED; no tangential hyperbolicity, no rate condition).**
+Hypotheses: U compact trapping region of g with g inward on bdry U, m = min inward speed; A = cap Theta_t U; phi C^2 on a neighbourhood of U solving the sync identity; psi0 C^2 exact on U; the cocycle of L = QA + Q' over the semiflow on U satisfies ||Psi|| <= c e^{-sigma t}; L Lipschitz in s. The closed loop uses decoder psi with ||psi - psi0|| <= eps on a neighbourhood. By continuity, uniformity on A alone gives uniformity on a smaller U.
+Proof. Coordinates shat = psi0(x), chi = x - phi(shat). Then chi' = L(shat) chi + O(|chi|^2) + O(delta) and shat' = g(shat) + O(|chi| + delta), delta = L_s eps. Let V(s,chi) = int_0^T |Psi(tau;s)chi|^2 dtau with c^2 e^{-2 sigma T} < 1/2. V is a quadratic form, Lipschitz in s, with derivative along the exact s-flow <= -|chi|^2/2. Along the perturbed motion the extra terms are O(|chi|^3 + delta|chi| + (|chi| + delta)|chi|^2). For a small tube: V' <= -2 sigma' V + c1 delta sqrt(V), so |chi(t)| <= c2 e^{-sigma' t}|chi(0)| + c3 delta / sigma'. If delta is small enough that the defect in shat' is below m, shat cannot leave U. So the tube is forward invariant. QED.
 
-**4.2 Reduction to an exact loop, smooth case (PROVED if De is small).** psi0 = (id+e)^{-1} psi is exact and C^1-close to psi. It is nonlinear even if psi is linear, so section 2 is needed here.
+Corollaries (PROVED):
+- **Upper semicontinuity.** shat is an O(delta)-pseudo-orbit of g on U. As Theta_T U enters any neighbourhood of A, closed-loop omega-limit sets converge to phi(A) as eps -> 0. This is a statement about attractor location, and no shadowing is needed.
+- **Forecast bound in source coordinates.** |shat(t) - s(t)| <= eps_eff (e^{L_g t} - 1)/L_g + ..., eps_eff = c(1 + L_v/sigma') delta, with L_v = sup||C' + CA||. Compared with Bizyaeva Prop. IV.1 this replaces the closed-loop Lipschitz constant L_g(closed), which is large for a reservoir, by the source Lipschitz constant, at the price of the 1/sigma' factor and the hypothesis of transverse contraction.
 
-**4.3 Theorem: uniform transverse contraction only (PROVED under strong hypotheses; written as a proof outline, constants not tracked).**
-Hypotheses: U is a trapping region of g; phi C^2 on U solves the sync identity; psi0 C^2 exact on U; the transverse cocycle on U is uniformly contracting at rate sigma. No tangential hyperbolicity and no comparison with source contraction rates is required for this conclusion.
-Argument: chi = x - phi(psi0(x)) vanishes on the graph. A converse Lyapunov metric on the compact forward-invariant U gives |chi(t)| <= |chi0| e^{-sigma t} + c L_s E0 / sigma while the decoded state stays in U. The decoded state is then an O(E0/sigma)-pseudo-orbit of g, so it stays in U by the inward condition.
-Conclusions: a forward-invariant tube of width O(E0/sigma), and as E0 -> 0 closed-loop omega-limit sets converge into phi(A) (upper semicontinuity).
-**Limit:** a C^2 phi on U essentially requires the rate condition, so this covers only 30/810 Lorenz and 163/810 Rössler runs.
+Checked in (F) with psi = y + eps b z, kappa near 1 and source contraction 14.57, so normal hyperbolicity fails:
+| E, amp | eps | median |chi| | sup |chi| |
+|---|---|---|---|
+| -1, 0.5 | 1e-4, 1e-3, 1e-2 | 3.4e-5, 3.4e-4, 3.4e-3 | 4.5e-5, 4.5e-4, 4.5e-3 |
+| -2, 1 | 1e-4, 1e-3, 1e-2 | 1.1e-4, 1.1e-3, 1.1e-2 | 2.4e-4, 2.4e-3, 2.4e-2 |
+Linear in eps and sup/median about 1.3 to 2. Median time to |shat - s| > 2 for E = -1, amp = 0.5: 11.3, 6.1, 1.9 at eps = 1e-6, 1e-4, 1e-2, slope about 1/lambda_1 in log(1/eps).
 
-**4.4 Continuous phi, hyperbolic source (SKETCH, relies on standard theorems not re-derived).** If A is uniformly hyperbolic, e = 0, and the quotient cocycle is uniformly contracting, then E is continuous, dominated, and has an invariant complement, so M is a **hyperbolic set of the closed loop in R^n; no smoothness of phi is needed**. phi(W^u) lies in W^u(phi(s)), since backward differences decay exponentially, so W^u(M) is in M and M is an attractor by invariance of domain. Structural stability of hyperbolic sets then gives, under C^1-small perturbation, a nearby orbit-equivalent attractor at distance O(perturbation).
-Without an exact reference (e != 0, no C^1 psi0 may exist): Palmer-type shadowing along the driven orbit, assuming J has an exponential dichotomy off the flow direction, gives a true orbit within c ||d||, with c of order 1/|lambda_perp| in the transverse part. Shadowing does not need lambda_perp < 0, only != 0: the sign decides attracting versus saddle. Lorenz and Rössler are not uniformly hyperbolic, so **this does not cover the paper's numerics**.
+Limit: a C^2 phi on U is the strong hypothesis. In generic filter-type reservoirs it requires the rate condition: 30/810 Lorenz and 163/810 Rössler runs.
 
-**4.5 Any attractor (SKETCH, standard Conley-type).** If M is asymptotically stable for the exact loop, then C^0-small perturbation leaves an attractor in any given neighbourhood.
+**4.2 Converse Lyapunov: no regularity of phi at all (PROVED; standard argument, statement apparently not in this literature).**
+Suppose G0 is Lipschitz with M invariant and dist(Xi_t x, M) <= c e^{-sigma0 t} dist(x, M) near M. Let |G - G0| <= delta near M. Then every solution of x' = G(x) starting close enough satisfies limsup dist(x(t), M) <= c' delta / sigma, for sigma < sigma0.
+Proof. Let V(x) = sup_{t>=0} e^{sigma t} dist(Xi_t x, M). Pick T with c e^{(sigma-sigma0)T} <= 1: the sup is attained on [0,T], so V is Lipschitz with constant Lip = e^{(L+sigma)T}, and dist <= V <= c dist. Also V(Xi_h x) <= e^{-sigma h} V(x). Along x' = G(x): D+V <= -sigma V + Lip delta. QED.
 
-**4.6 Non-uniform: the naive theorem is FALSE in general.** lambda_perp < 0 for the natural measure with positive transverse rates on embedded orbits is the bubbling setting of Ashwin-Buescu-Stewart 1994: low noise triggers intermittent bursts, so no O(e) sup bound can be expected. The example of 3.2 with sign-changing A22 - A12 Dh should realize this (test, not run).
-Weaker statement (PROVED at the linear level only): for eta' = L_perp(t) eta + d, |d| <= eps, with moment exponent L(q) = lim (1/T) log E ||Psi_perp(T)||^q < 0 and q >= 1, Minkowski gives ||eta||_{L^q(mu)} <= c eps q / |L(q)|, so mu{|eta| > x} <= (c eps q / (|L(q)| x))^q. L(q)/q interpolates between lambda_perp (q -> 0) and the uniform rate (q -> inf).
-Prediction (CONJECTURE): stable-by-lambda_perp runs that fail have L(q) > 0 at moderate q, or positive transverse rate at source fixed points. This is a cheap untested candidate for the 163/761 Lorenz and 72/297 Rössler failures.
+**The regularity needed is on the decoder side.** G0 = f(x, psi0(x)) needs psi0 Lipschitz with psi0 phi = id on M, i.e. phi^{-1} Lipschitz, i.e. |phi(s)-phi(s')| >= c|s-s'|. This holds if Lip(e) < 1 on A, since |N||phi(s)-phi(s')| >= (1 - Lip e)|s-s'|. It does **not** need phi Lipschitz. By Kirszbraun, psi0 = psi - e-tilde with the same sup norm. So: small e in sup norm plus Lip(e) < 1 is what is needed, and this is checkable from data as the largest |e(s)-e(s')|/|s-s'| over nearby pairs (not yet tested). Remaining hypothesis: exponential attraction of M.
 
-## 5. Literature (partial)
+**4.3 Getting exponential attraction with continuous phi (SKETCH; relies on standard theorems not re-derived here).** If A is uniformly hyperbolic and the quotient cocycle is uniformly contracting, E is continuous and dominates the quotient, so it has an invariant complement. Then M is a **hyperbolic set of the closed loop in R^n, with no smoothness of phi needed**. phi(W^u) lies in W^u(phi(s)) because backward differences decay exponentially. So W^u(M) is contained in M, the stable manifolds fill a neighbourhood by invariance of domain, and M is an exponentially attracting attractor. Structural stability then gives a nearby orbit-equivalent attractor under C^1-small perturbation, and 4.2 gives the C^0 version. Oishi et al. use HPS Theorem 5.5 for a partially hyperbolic analogue. Hara & Kokubu 2026 reportedly use structural stability and strong fiber contraction (unread). **Lorenz and Rössler are not uniformly hyperbolic, so this does not cover the paper's numerics.** Lorenz (singular hyperbolic) with a trapping cone field: CONJECTURE. Rössler: open.
 
-| Source | How much was read | Overlap |
+Shadowing variant (SKETCH): Palmer-type shadowing along the driven orbit with a dichotomy for J gives a true orbit within c ||d||, with c of order 1/|lambda_perp| in the transverse part. It needs lambda_perp != 0, not < 0: the sign decides attracting versus saddle.
+
+**4.4 Non-uniform: the O(e) sup bound is FALSE in general (checked), and a moment bound replaces it.**
+<a> < 0 with positive rates on embedded orbits is the bubbling setting of Ashwin, Buescu, Stewart 1994. In (F) with E = -1, amp = 3, <a> = -0.26, a = 2 at the C+- fixed points:
+| eps | median |chi| | 99.9% | sup, T = 8000 |
+|---|---|---|---|
+| 1e-5 | 9.3e-5 | 1.3e-2 | 3.8e-2 |
+| 1e-4 | 9.2e-4 | 1.7e-1 | 5.7e-1 |
+Sup/median is about 400 to 600, compared with 1.3 to 2 in the uniform case.
+
+**Moment bound (PROVED at the linear level).** For eta' = L_perp(t) eta + d, |d| <= eps, with L(q) = lim (1/T) log E||Psi_perp(T)||^q < 0, q >= 1: Minkowski and invariance give ||eta||_{L^q(mu)} <= c eps q / |L(q)|, so mu{|eta| > x} <= (c eps q / (|L(q)| x))^q. L(q)/q interpolates from lambda_perp (q -> 0) to the uniform rate (q -> infinity). In (F) with E = -1, amp = 3: L(1) = -0.056, L(2) = +0.18, so tails have exponent between 1 and 2 (estimated from 1000 windows of length 20, so rare events are poorly sampled). Compare E = -1, amp = 0.5: L(q) < 0 at all tested q.
+Nonlinear extension: not proved. It needs eta to remain in the linear region between bursts.
+
+**Prediction (CONJECTURE, being tested).** Stable-by-lambda_perp runs that fail have L(q) > 0 at moderate q, or positive transverse rate at source fixed points.
+
+## 5. Literature
+
+Reading depth is stated. The literature session's map is `docs/literature_map.md` on branch `literature-map`.
+
+| Source | Read | Overlap |
 |---|---|---|
-| Oishi et al. arXiv:2602.11069 | Theorems and methods sections of the full text | Their Theorem 1: Im B in an A-invariant subspace implies the remaining eigenvalues persist. This is the **linear case of QB = 0 (3.3): known**. They also state controllability lets feedback relocate all eigenvalues (compare pole placement) and use a partially hyperbolic set with HPS Theorem 5.5 for attraction (compare 4.4). I saw no zeros/factorization statement in the parts read; not read in full. |
-| Oishi et al. arXiv:2606.24303 | Abstract, keyword scan | Same design programme under partial observation. No overlap seen; not read. |
-| Hara & Kokubu 2024 | Introduction and setup only | Degenerate reservoir, logistic map, smooth conjugacy on the attractor (their Theorem 1). Overlaps Prop. 1 in spirit. Section 4 not read. |
-| Hara & Kokubu 2026 | **Not read** (SIAM 403 again; no preprint found). Search snippet only: conjugacy under mild conditions. Slides located (math.bu.edu/BKT2024/slides/Hara.pdf) but download failed; a search snippet mentions fiber contraction and structural stability. | **Must be read before claiming 4.4 is new**; it may be closely related. |
-| A. Hart 2024 Physica D (arXiv:2211.09515) | Keyword scan, one section | GS existence, linear closed form, embedding on fixed points; autonomous field diffeomorphic to source on an embedded open set (compare Prop. 1). No closed-loop stability theorem found in the scan. Note: this is Allen Hart; the rate condition is Joseph Hart (Chaos 2024), not re-read here. |
-| Wikner et al. arXiv:2211.05262 | Search summary only | Jacobian regularization as comparison method. Exact form not verified. |
-| Ashwin, Buescu, Stewart 1994 | Abstract-level | Bubbling (4.6): known. |
-| Freudenberg & Looze 1985; Iglesias 2002 (LTV analogue) | Secondary sources | Frequency integral of 3.1 is the Bode type: known as control theory, its application here apparently new. |
-| Byrnes, Isidori, Willems 1991 | Summary | Passivity and zero dynamics: known in control. |
-| Palmer 1988; Chow, Lin, Palmer 1989 | Bibliographic | Shadowing via dichotomies: known. |
+| Saqib & Padoan arXiv:2610.08987 | Props. 2-4, Remark 1, Cor. 7, Sec. V | Linear reservoir, neutral linear exosystem: triangular form, transverse eigenvalues freely assignable, moment matching T = I at source eigenvalues, zero-error instability; nonlinear: invariant manifold and KKL map, local, no transverse operator. **Not there: chaotic sources, non-differentiable maps, time-varying transverse operator, zeros and factorization.** |
+| Bizyaeva et al. arXiv:2610.04343 | Props. III.1, IV.1 | KKL view; exact on X iff closed-loop reproduces (our Prop. 1, and supports the repair of Error 2); finite-time Gronwall forecast bound. No transverse analysis (only named as a question). |
+| Oishi et al. arXiv:2602.11069 | Theorem 1, Methods | Linear QB = 0: known. Controllability remark. Partially hyperbolic set via HPS 5.5. |
+| Oishi et al. arXiv:2606.24303 | Abstract, keyword scan | No theorem overlap seen. Not read in full. |
+| Hara & Kokubu 2024 | Full | Degenerate reservoir (no r dependence), conjugacy on the image; no stability theorem. |
+| **Hara & Kokubu 2026** | **Unread: SIAM bot check blocks the page, no preprint found.** | Snippet: fiber contraction, conjugacy. **Blocked; 4.3 cannot be called new until read.** Needs the PDF from the user. |
+| A. Hart 2024 Physica D | Keyword scan, one section | GS existence, linear form, embeddings, autonomous field on an embedded set. No stability theorem in scan. |
+| J. Hart 2024 Chaos | Main argument, via fetch | Heuristic with no theorem: rate condition and "stay close to CLEs". Family (F) shows rate failure does not force loss of -14.57, and gives a gap. |
+| Wong et al. arXiv:2408.04058 | Via fetch | Contraction of driven reservoir; closed-loop robustness stated as open. |
+| Rivkind & Barak PRL 2017 | Key equations via fetch | G_CL = G_OL/(1-G_OL), Nyquist, for fixed points in mean-field: known principle for det(I-T) = 0. |
+| Wikner et al. | Via literature map | N^T D B penalty known in substance. |
+| Ashwin, Buescu, Stewart 1994 | Abstract | Bubbling: known. |
+| Freudenberg & Looze 1985, Iglesias 2002, Byrnes-Isidori-Willems 1991, Palmer 1988, Andrieu & Praly 2006 | Secondary or snippets | Bode integral, LTV analogue, passivity and zero dynamics, shadowing, KKL: known in their fields. The sync identity for linear reservoirs is the KKL equation. |
 
-Status of results, **provisional, since the search was short and one search for a zero-dynamics treatment of RC found none (absence of evidence only)**:
-- Prop. 1: known in substance (Hara-Kokubu, A. Hart for embeddings).
-- Prop. 2, Prop. 4, the factorization and the zero-dynamics identification, the loop identity, the restricted small gain, the non-existence of exact linear reservoirs for chaos: apparently new in this setting, not verified.
-- QB = 0: known in the linear case (Oishi). Observer reading of Prop. 4: standard observer structure, application apparently new.
-
-## 6. Not done
-
-- No numerics. Priority tests: sum rule on a tanh reservoir; the 4-d Lorenz example with phi = (s, h(s)); looseness of the small-gain bound; L(q) and fixed-point rates against failures.
-- Hara & Kokubu 2026 and the remainder of Hara & Kokubu 2024, Joseph Hart 2024, Wikner; further observer and synchronization-stability search (e.g. master stability work).
-- Full written proof of 4.3 with constants; verification of 4.4 against textbook statements.
+Status of new results, provisional:
+- Known: Prop. 1 in substance; finite-time bound; linear triangular form and assignability; QB = 0 linear; linear+chaos restriction; bubbling.
+- Apparently new, as far as read: Prop. 2 as a theorem; nonlinear time-varying QA and moving-kernel term; time-varying factorization and restricted small gain; quotient operator Q_E J and the smoothness-free sum rule; loop identity; chaotic no-go; tube theorem with source-coordinate forecast bound; moment tail bound. Search for zero-dynamics treatments of RC found none (absence of evidence only).
+- Elementary given the framework: the sum rule, loop identity, chaotic family. These are easy and could appear elsewhere in other notation.
