@@ -137,4 +137,4 @@ Given section 0, a pitch of "reservoirs learn the vector field" or "stable synch
 
 **Not to claim:** (i) as a new idea; at most the fixed-B form and a comparison, tested against Wikner's Jacobian-only failure.
 
-**Timing:** the linear-system overlap appeared this month in control-theory preprints, and those authors state further work is planned. Extending to chaotic sources is the natural next step for them, so posting soon matters.
+**Timing:** the linear-system overlap appeared this month in control-theory preprints, and Bizyaeva et al. say they look forward to collaborating with the other group. In my judgment chaotic sources are a natural next step for them, so posting soon matters.
