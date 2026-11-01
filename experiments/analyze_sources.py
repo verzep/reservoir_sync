@@ -269,11 +269,47 @@ def figure(path, per_arm):
     plt.close(fig)
 
 
+def controls(d):
+    """Lorenz and Rossler across amplitude, offset and training window; interval over reservoir seeds."""
+    print("\n=== Controls: scan_base, scan_train, ctl_* and the arms, Lorenz and Rossler")
+    print("file                 source   runs     A   off    tau t_train  unst [95% CI over seeds] by gamma 1/5/20    perp   cle  fail  gain")
+    rng = np.random.default_rng(0)
+    out = []
+    paths = [d / f"scan_{a}.jsonl" for a in ("base", "train", "lambda", "freq", "raw")] + sorted(d.glob("ctl_*.jsonl"))
+    for path in paths:
+        if not path.exists():
+            continue
+        for name in ("lorenz", "rossler"):
+            recs = load([path], name)
+            if not recs:
+                continue
+            T, c = table(recs), recs[0]["config"]
+            un = T["perp"] >= UNSTABLE
+            seeds = np.array([r["config"]["seed"] for r in recs])
+            per = np.array([un[seeds == x].mean() for x in np.unique(seeds)])
+            boot = rng.choice(per, (N_BOOT, len(per))).mean(1)
+            by = [un[T["gamma"] == g].mean() for g in (1, 5, 20)]
+            row = {"file": path.stem, "source": name, "runs": len(recs), "amplitude": c.get("amplitude"),
+                   "offset": c.get("offset", 0.0), "time_scale": c["time_scale"], "t_train": c["t_train"],
+                   "unstable": float(un.mean()), "lo": float(np.quantile(boot, 0.025)), "hi": float(np.quantile(boot, 0.975)),
+                   "perp": float(np.nanmedian(T["perp"])), "cle": float(np.nanmedian(T["cle_max"])),
+                   "fail": float(np.nanmean(T["fail_frac"])), "gain": float(np.nanmedian(T["gain_NB"]))}
+            out.append(row)
+            print(f"{path.stem:20s} {name:8s} {len(recs):4d} {row['amplitude'] or 0:5.1f} {row['offset']:5.1f} {row['time_scale']:6.2f} {row['t_train']:7.1f}"
+                  f"  {row['unstable']:.2f} [{row['lo']:.2f},{row['hi']:.2f}]   " + "/".join(f"{x:.2f}" for x in by)
+                  + f"  {row['perp']:+6.2f} {row['cle']:+5.2f} {row['fail']:.2f} {row['gain']:5.2f}")
+    write_csv(d / "controls.csv", out)
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("dir", type=Path)
     p.add_argument("--arms", nargs="+", default=["raw", "lambda", "freq"])
+    p.add_argument("--controls-only", action="store_true")
     a = p.parse_args()
+    controls(a.dir)
+    if a.controls_only:
+        return
     calibration = json.loads((a.dir / "calibration.json").read_text())
     per_arm, all_laws, all_cells = {}, [], {}
     for arm in a.arms:
