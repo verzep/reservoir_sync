@@ -27,6 +27,7 @@ Notation. A = A_c, B = B_c along the driven orbit, G = Dg(s(t)), F = Dphi(s(t)) 
 
 **ERROR 2 (Prop. 3, eq. differential_inverse): N^T Dphi = I does not follow from exact reconstruction on A_s.** Differentiating gives it only on the tangent cone of A_s.
 - FALSE, by example. Attracting circle (rho radial exponent -2, angular speed 1), linear reservoir with W Pi + V = Pi L0, N^T Pi = I. Reconstruction on A_s is exact. The closed-loop spectrum contains +-i, i.e. 0, 0, while the source has 0, -2. Checked with kappa = 4 > 2, so a smooth phi exists: |N^T F e_t - e_t| = 3.5e-12 and |N^T F e_r - e_r| = 0.70.
+- **This is a live effect on real trained readouts, not a formality.** In rate-condition tanh runs (gamma = 20, rho = 0.5; Rössler all six, Lorenz sigma = 0.1 two) F was integrated along the orbit: |(N^T F - I) Q_2| < 5e-4 and |(N^T F - I) g|/|g| < 5e-4, where Q_2 is the leading two source directions, while |(N^T F - I) on the remaining direction| = 0.49 to 3.5 (Rössler) and 4.3 to 9.3 (Lorenz). So Prop. 2 holds to three decimals with an approximate readout, and N^T F = I fails on the stable direction even when phi is smooth. Consequently QA computed with a right inverse from F does not match J on these runs (examples: J third exponent -3.85 against QA top +0.28; -1.54 against -7.36). **The operator to use on trained readouts is Q_E J of 3.3, not QA of Prop. 3.** Also: only 7 of 21 Rössler rate runs have a J exponent within 0.5 of -5.37 (median distance 1.24), and 3 of 4 on Lorenz. With the bulk of exponents nearby, "within 0.5" is a weak test.
 - Repair (PROVED): assume exactness on a neighbourhood, as in Bizyaeva et al. Prop. III.1 where the exact identity holds on X, or assume the tangent cones of A_s span R^d (a C^1 function vanishing on X has derivative vanishing on the tangent cone of X).
 - With the repair, the computation in Prop. 3 is correct and needs only a bounded F solving F' = AF + B - FG with N^T F = I.
 
@@ -152,6 +153,8 @@ This is the quotient cocycle in coordinates (W(t) is complementary to E). If S(t
 
 The gain-one part (Xi a) is deflated; the rest of K still acts on u_S.
 
+**Is the leading transverse direction readout-invisible? Mostly, not always.** Representative zeta in W, ratio |N^T zeta|/(|N|_2 |zeta|); a random vector gives 0.07 to 0.12. Valid only for runs where the third QR direction is transverse. Rössler gamma = 5, rho = 0.9: 0.014, 0.014 (strongly invisible). Rössler gamma = 20, rho = 0.5: 0.10 to 0.13 (no better than random). Lorenz, all 12 runs (gamma = 1, 5, 20): 0.000 to 0.026 (strongly invisible). So "the transverse directions are the readout-invisible ones" is well supported on Lorenz and on Rössler at gamma = 5, but not on Rössler at gamma = 20, rho = 0.5, where the source is thinly sampled along its stable direction and the d - k decoded direction can matter. Small sample (3 runs per setting).
+
 **Bound (PROVED).** lambda_perp <= -kappa + c sup ||Q_E B N^T|_W - Y L N^T A|_W||. Probably far too loose to be useful in practice (not tested on reservoirs).
 
 **Sum rule without smoothness (PROVED, checked to 3e-10).**
@@ -178,11 +181,29 @@ Linear version (Saqib & Padoan eq. 32): same reservoir, different exact readout.
 
 **Closed form: no (PROVED).** With n - k = 1, moving the second eigenvalue of W leaves the largest CLE and N^T V fixed and moves lambda_perp. So no formula in (lambda_perp, largest CLE, loop gain) alone exists. What exists: two-sided identities in the *sum* (3.3), an exact integral in the linear case (3.1), and sufficient gains (3.2).
 
+**Empirical analogue for a fixed reservoir and chaotic source (checked, one reservoir, three random directions).** Rössler, gamma = 5, rho = 0.9, n = 200. N = N0 + Delta with Delta in the 80 weakest singular directions of the training data:
+| |Delta|/|N0| | train NRMSE | lambda_perp, trials 1, 2, 3 |
+|---|---|---|
+| 0 | 6.4e-5 | 1.90, 1.90, 1.90 |
+| 1 | 6.5e-5 | 3.03, 2.57, 2.07 |
+| 3 | 6.7e-5 | 5.71, 8.49, 3.08 |
+| 10 | 9e-5 | 16.9, 34.6, 4.46 |
+Training error stays essentially flat while lambda_perp moves by an order of magnitude. Random directions destabilize; the largest stabilization seen was 1.90 to 1.77. This is the chaotic counterpart of Saqib & Padoan's free transverse modes, measured, not proved.
+
+**Simple driven-phase predictors (checked, 108 runs per source, n = 200).** Spearman with lambda_perp within gamma = 1, 5, 20. Each cell n = 36:
+| Quantity | Rössler | Lorenz |
+|---|---|---|
+| tr N^T B | +0.70, +0.86, +0.49 | +0.53, +0.70, +0.84 |
+| largest CLE | +0.60, +0.46, +0.30 | +0.70, +0.64, +0.46 |
+| mu_2(A|ker) | +0.57, +0.44, +0.32 | +0.75, +0.74, +0.61 |
+| ||N^T A|ker|| | -0.06, -0.29, -0.13 | +0.48, +0.33, +0.20 |
+tr N^T B beats the largest CLE in 5 of 6 cells, and keeps partial correlation 0.45 to 0.85 given the CLE. The CLE keeps 0.05 to 0.73 given the trace, so both carry information. Within a fixed sigma (n = 12) the ranking is mixed, and the CLE often wins at small sigma. The sign agrees with the sum rule, but the average shift (tr N^T B)/(n - k), about 0.1 to 0.4, is smaller than the gap, so the sum rule does not by itself explain the correlation. ||N^T A|ker||, the coupling in the bound, is a poor predictor alone. **No simple quantity replaces computing lambda_perp**, which is cheap anyway. Gap lambda_perp - largest CLE: positive in 108/108 on both sources, median +1.86 and +0.78.
+
 **SKETCH, N^T B penalty on tanh reservoirs.** N^T B = gamma N^T D V and N^T A|ker = gamma N^T D W|ker share the factor N^T D(t), so penalizing the first also shrinks the coupling ||N^T A|_ker||, if V does not align badly. The loop identity suggests the natural target is N^T B near G rather than 0 (CONJECTURE).
 
 ## 4. Imperfect reconstruction
 
-Bizyaeva et al. Prop. IV.1 give the Gronwall bound with closed-loop Lipschitz constant. That is the baseline (known). Normal hyperbolicity relative to a manifold is the wrong frame when phi is merely continuous.
+Bizyaeva et al. Prop. IV.1 give the Gronwall bound with closed-loop Lipschitz constant. That is the baseline (known), and it is PROVED there for any readout. Normal hyperbolicity relative to a manifold is the wrong frame when phi is merely continuous.
 
 **4.1 Tube theorem under uniform transverse contraction (PROVED; no tangential hyperbolicity, no rate condition).**
 Hypotheses: U compact trapping region of g with g inward on bdry U, m = min inward speed; A = cap Theta_t U; phi C^2 on a neighbourhood of U solving the sync identity; psi0 C^2 exact on U; the cocycle of L = QA + Q' over the semiflow on U satisfies ||Psi|| <= c e^{-sigma t}; L Lipschitz in s. The closed loop uses decoder psi with ||psi - psi0|| <= eps on a neighbourhood. By continuity, uniformity on A alone gives uniformity on a smaller U.
@@ -199,13 +220,15 @@ Checked in (F) with psi = y + eps b z, kappa near 1 and source contraction 14.57
 | -2, 1 | 1e-4, 1e-3, 1e-2 | 1.1e-4, 1.1e-3, 1.1e-2 | 2.4e-4, 2.4e-3, 2.4e-2 |
 Linear in eps and sup/median about 1.3 to 2. Median time to |shat - s| > 2 for E = -1, amp = 0.5: 11.3, 6.1, 1.9 at eps = 1e-6, 1e-4, 1e-2, slope about 1/lambda_1 in log(1/eps).
 
+Subtlety: U must be chosen with care. On Lorenz, a trapping U containing C+- has a maximal invariant set larger than the chaotic attractor. Tube and upper semicontinuity then speak about that larger set.
+
 Limit: a C^2 phi on U is the strong hypothesis. In generic filter-type reservoirs it requires the rate condition: 30/810 Lorenz and 163/810 Rössler runs.
 
 **4.2 Converse Lyapunov: no regularity of phi at all (PROVED; standard argument, statement apparently not in this literature).**
 Suppose G0 is Lipschitz with M invariant and dist(Xi_t x, M) <= c e^{-sigma0 t} dist(x, M) near M. Let |G - G0| <= delta near M. Then every solution of x' = G(x) starting close enough satisfies limsup dist(x(t), M) <= c' delta / sigma, for sigma < sigma0.
 Proof. Let V(x) = sup_{t>=0} e^{sigma t} dist(Xi_t x, M). Pick T with c e^{(sigma-sigma0)T} <= 1: the sup is attained on [0,T], so V is Lipschitz with constant Lip = e^{(L+sigma)T}, and dist <= V <= c dist. Also V(Xi_h x) <= e^{-sigma h} V(x). Along x' = G(x): D+V <= -sigma V + Lip delta. QED.
 
-**The regularity needed is on the decoder side.** G0 = f(x, psi0(x)) needs psi0 Lipschitz with psi0 phi = id on M, i.e. phi^{-1} Lipschitz, i.e. |phi(s)-phi(s')| >= c|s-s'|. This holds if Lip(e) < 1 on A, since |N||phi(s)-phi(s')| >= (1 - Lip e)|s-s'|. It does **not** need phi Lipschitz. By Kirszbraun, psi0 = psi - e-tilde with the same sup norm. So: small e in sup norm plus Lip(e) < 1 is what is needed, and this is checkable from data as the largest |e(s)-e(s')|/|s-s'| over nearby pairs (not yet tested). Remaining hypothesis: exponential attraction of M.
+**The regularity needed is on the decoder side.** G0 = f(x, psi0(x)) needs psi0 Lipschitz with psi0 phi = id on M, i.e. phi^{-1} Lipschitz, i.e. |phi(s)-phi(s')| >= c|s-s'|. This holds if Lip(e) < 1 on A, since |N||phi(s)-phi(s')| >= (1 - Lip e)|s-s'|. It does **not** need phi Lipschitz. By Kirszbraun, psi0 = psi - e-tilde with the same sup norm. So: small e in sup norm plus Lip(e) < 1 is what is needed, and this is checkable from data as the largest |e(s)-e(s')|/|s-s'| over nearby pairs (not yet tested). Checked on data: Rössler, largest ratio over nearest non-consecutive pairs is < 1 in 108/108 runs (median 0.011). Lorenz, < 1 in 79/108 (99th percentile < 1 in 90/108). These pairs are at distance about 0.2 to 0.4, so this bounds Lip(e) only at data resolution; it cannot exclude a rough small-scale e. Remaining hypothesis: exponential attraction of M, which is exactly what fails or is unverified on these sources.
 
 **4.3 Getting exponential attraction with continuous phi (SKETCH; relies on standard theorems not re-derived here).** If A is uniformly hyperbolic and the quotient cocycle is uniformly contracting, E is continuous and dominates the quotient, so it has an invariant complement. Then M is a **hyperbolic set of the closed loop in R^n, with no smoothness of phi needed**. phi(W^u) lies in W^u(phi(s)) because backward differences decay exponentially. So W^u(M) is contained in M, the stable manifolds fill a neighbourhood by invariance of domain, and M is an exponentially attracting attractor. Structural stability then gives a nearby orbit-equivalent attractor under C^1-small perturbation, and 4.2 gives the C^0 version. Oishi et al. use HPS Theorem 5.5 for a partially hyperbolic analogue. Hara & Kokubu 2026 reportedly use structural stability and strong fiber contraction (unread). **Lorenz and Rössler are not uniformly hyperbolic, so this does not cover the paper's numerics.** Lorenz (singular hyperbolic) with a trapping cone field: CONJECTURE. Rössler: open.
 
@@ -217,12 +240,27 @@ Shadowing variant (SKETCH): Palmer-type shadowing along the driven orbit with a 
 |---|---|---|---|
 | 1e-5 | 9.3e-5 | 1.3e-2 | 3.8e-2 |
 | 1e-4 | 9.2e-4 | 1.7e-1 | 5.7e-1 |
-Sup/median is about 400 to 600, compared with 1.3 to 2 in the uniform case.
+| 1e-3 | 1.3e-2 | 84 | 97 |
+| 1e-2 | 86 | 86 | 90 |
+Sup/median is about 400 to 600 at small eps, compared with 1.3 to 2 in the uniform case (where sup is also linear, e.g. 4.5e-5, 4.5e-3 at T = 8000). **At eps = 1e-3 a burst takes the trajectory permanently away (chi near 85), with lambda_perp < 0 and exact phi in the limit.** So in this example, a small readout error, negative transverse exponent, and a loss of the attractor coexist. This is an example of the paper's stable-but-failing runs, not a proof that those runs fail this way.
 
 **Moment bound (PROVED at the linear level).** For eta' = L_perp(t) eta + d, |d| <= eps, with L(q) = lim (1/T) log E||Psi_perp(T)||^q < 0, q >= 1: Minkowski and invariance give ||eta||_{L^q(mu)} <= c eps q / |L(q)|, so mu{|eta| > x} <= (c eps q / (|L(q)| x))^q. L(q)/q interpolates from lambda_perp (q -> 0) to the uniform rate (q -> infinity). In (F) with E = -1, amp = 3: L(1) = -0.056, L(2) = +0.18, so tails have exponent between 1 and 2 (estimated from 1000 windows of length 20, so rare events are poorly sampled). Compare E = -1, amp = 0.5: L(q) < 0 at all tested q.
 Nonlinear extension: not proved. It needs eta to remain in the linear region between bursts.
 
-**Prediction (CONJECTURE, being tested).** Stable-by-lambda_perp runs that fail have L(q) > 0 at moderate q, or positive transverse rate at source fixed points.
+**Why do stable runs fail on real reservoirs? Tested; the conjecture gets weak support at best.** 108 runs per source; stable means lambda_perp < 0, fail means not on the source attractor after 1000 time units. Rössler: 49 stable, 12 fail. Lorenz: 101 stable, 25 fail.
+| Predictor among stable runs | Rössler | Lorenz |
+|---|---|---|
+| AUC lambda_perp | 0.50 | 0.62 |
+| AUC L(1), L(2), L(8) | 0.60, 0.60, 0.59 | 0.70, 0.71, 0.72 |
+| AUC largest finite-time rate | 0.58 | 0.72 |
+| AUC largest CLE | 0.35 | 0.50 |
+| fail rate given L(2) > 0 vs <= 0 | 0.67 (n=9) vs 0.15 | 0.60 (n=5) vs 0.23 |
+| fail rate given positive transverse rate at C+ | - | 0.33 (n=3) vs 0.24 |
+| fail rate given positive transverse rate at C- | - | 0.83 (n=6) vs 0.21 |
+| fail rate given stable closed-loop fixed point within 5 of a source fixed point | none found | 0.73 (n=11) vs 0.19 |
+L(q) is estimated from 60 windows of length 10, so it is noisy, and AUCs have no correction for selection among predictors. The transverse rate at the Lorenz origin is positive in 91/101 runs because the reservoir extrapolates there (median |e| = 10), so **uniform transverse contraction essentially never holds on these Lorenz runs, and the hypotheses of 4.1 and 4.3 fail for them.**
+
+**A separate, tangential mechanism (SKETCH).** For Lorenz at rho = 28, C+- have Re(eigenvalue) = +0.094 (Hopf at sigma(sigma+beta+3)/(sigma-beta-1) = 24.74). A readout error of order 0.09 in Dg-like terms can stabilize them, which is a failure of C^1 closeness in the *tangent* block, not of transverse stability. It accounts for 7 of the 23 fixed-point ends among stable Lorenz runs. The other 16 end at fixed points not within 5 of a source fixed point (untrained attractors, as in Hart). On Rössler this mechanism was not seen. So the failures of stable runs are heterogeneous, and I have no single criterion for them.
 
 ## 5. Literature
 
@@ -235,7 +273,7 @@ Reading depth is stated. The literature session's map is `docs/literature_map.md
 | Oishi et al. arXiv:2602.11069 | Theorem 1, Methods | Linear QB = 0: known. Controllability remark. Partially hyperbolic set via HPS 5.5. |
 | Oishi et al. arXiv:2606.24303 | Abstract, keyword scan | No theorem overlap seen. Not read in full. |
 | Hara & Kokubu 2024 | Full | Degenerate reservoir (no r dependence), conjugacy on the image; no stability theorem. |
-| **Hara & Kokubu 2026** | **Unread: SIAM bot check blocks the page, no preprint found.** | Snippet: fiber contraction, conjugacy. **Blocked; 4.3 cannot be called new until read.** Needs the PDF from the user. |
+| **Hara & Kokubu 2026** | **Unread: SIAM bot check blocks the page, no preprint found. BLOCKED.** | Snippet: fiber contraction, conjugacy. 4.3 cannot be called new until read. Needs the PDF from the user. |
 | A. Hart 2024 Physica D | Keyword scan, one section | GS existence, linear form, embeddings, autonomous field on an embedded set. No stability theorem in scan. |
 | J. Hart 2024 Chaos | Main argument, via fetch | Heuristic with no theorem: rate condition and "stay close to CLEs". Family (F) shows rate failure does not force loss of -14.57, and gives a gap. |
 | Wong et al. arXiv:2408.04058 | Via fetch | Contraction of driven reservoir; closed-loop robustness stated as open. |
@@ -248,3 +286,20 @@ Status of new results, provisional:
 - Known: Prop. 1 in substance; finite-time bound; linear triangular form and assignability; QB = 0 linear; linear+chaos restriction; bubbling.
 - Apparently new, as far as read: Prop. 2 as a theorem; nonlinear time-varying QA and moving-kernel term; time-varying factorization and restricted small gain; quotient operator Q_E J and the smoothness-free sum rule; loop identity; chaotic no-go; tube theorem with source-coordinate forecast bound; moment tail bound. Search for zero-dynamics treatments of RC found none (absence of evidence only).
 - Elementary given the framework: the sum rule, loop identity, chaotic family. These are easy and could appear elsewhere in other notation.
+
+## 6. Status by brief item
+
+| Item | Status |
+|---|---|
+| 1. Audit | Done. Props. 1, 2, 4 and the spectrum claim hold. Three errors. Open: tempered version of Prop. 2 |
+| 2. General decoder | PROVED (2), except straightening SKETCH |
+| 3. Criterion, linear | PROVED, checked; spectral content known |
+| 3. Criterion, smooth time-varying | PROVED, checked in family (F). Not tested on tanh reservoirs: the required F has N^T F != I there |
+| 3. Criterion, non-differentiable | Operator and sum rule PROVED. A useful sharp gain: not obtained |
+| 3. Closed form | Does not exist in the requested variables (PROVED) |
+| 4. Smooth, uniform transverse | PROVED (tube) |
+| 4. Continuous phi, general | PROVED conditional on exponential attraction and Lipschitz phi^{-1}. Getting attraction: SKETCH for hyperbolic sources, CONJECTURE for Lorenz, open for Rössler |
+| 4. Non-uniform | O(e) sup bound FALSE in general; moment bound PROVED at linear level; nonlinear version open |
+| 5. Literature | Done except Hara & Kokubu 2026 (blocked) and full texts noted above |
+
+**Headline for a letter: no.** The strongest statement is structural: transverse stability is the zero dynamics of the reservoir, and neither CLEs nor reconstruction error constrain it, also for chaotic sources. Part of this is now out for linear systems, the proofs are short, and no sharp predictive law holds on real reservoirs: the certified gains need a smooth F, uniform contraction fails on Lorenz, and failures of stable runs are heterogeneous. This fits a long-format paper.
