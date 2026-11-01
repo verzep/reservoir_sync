@@ -7,6 +7,19 @@ Evidence labels:
 - **[abstract]**: only the abstract or a search snippet.
 - **[meta]**: only the bibliographic record was verified. Anything said about the paper is a lead, not an attribution.
 
+## Part B. Overlap check: Ortega and Grigoryeva, 2021 to now (work in progress)
+
+Lists used: arXiv API by author name, OpenAlex author records (both 2020-06 on). Google Scholar was not queried. `24m1714617.pdf` is Hara & Kokubu, not theirs (see 3a).
+
+**First batch of findings.**
+- **Louw & Ortega, "Learning the climate of dynamical systems with state-space systems", arXiv:2512.15530, J. Nonlinear Sci. 2026 [passages].** Theorem 4.3 assumes Phi-hat in Diff^1 of the embedded manifold X-tilde. Whether the proxy keeps X-tilde is called "An important question" and handled through attractor blocks, with the remark "It is not clear whether every attractor possesses an attractor block which is a manifold". So the transverse question is assumed away, not answered.
+- **Grigoryeva, Louw, Ortega, Nonlinearity 2025, arXiv:2405.02536 [passages].** Thm 3.11: error growth at rate of the proxy's top Lyapunov exponent, on a compact invariant set of the closed loop.
+- **Manjunath, Ortega, van der Merwe, arXiv:2605.25221 [passages].** Invariant-subspace design BV in V, for ridge training error.
+
+Remaining reads pending; see later commits.
+
+---
+
 ## Part A. Broader map for the current paper (2 Nov 2026)
 
 Paper read: "Learn to Synchronize, Fail to Predict" (origin/main 19ba85e): introduction and the sections "What training determines" and "Numerical results". Parts 0–7 below were written for the earlier draft "Closing the Loop"; their passage-level evidence still stands, but where they discuss "the draft" they mean that version.
