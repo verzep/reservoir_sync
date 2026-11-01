@@ -7,16 +7,79 @@ Evidence labels:
 - **[abstract]**: only the abstract or a search snippet.
 - **[meta]**: only the bibliographic record was verified. Anything said about the paper is a lead, not an attribution.
 
-## Part B. Overlap check: Ortega and Grigoryeva, 2021 to now (work in progress)
+## Part B. Overlap check: Ortega and Grigoryeva, 2021 to now
 
-Lists used: arXiv API by author name, OpenAlex author records (both 2020-06 on). Google Scholar was not queried. `24m1714617.pdf` is Hara & Kokubu, not theirs (see 3a).
+Claims tested, from "Learn to Synchronize, Fail to Predict": (1) source unstable and neutral exponents survive without a differentiable map; (2) transverse modes are zero dynamics, with time-varying factorization and restricted small gain; (3) no function of conditional exponents, reconstruction error and source decides lambda_perp, with an exact chaotic family; (4) tube theorem, and bubbling at negative lambda_perp; (5) lambda_perp predicts valid time across 19 systems, while source exponents don't predict the unstable fraction; (6) bias or offset lowers lambda_perp.
 
-**First batch of findings.**
-- **Louw & Ortega, "Learning the climate of dynamical systems with state-space systems", arXiv:2512.15530, J. Nonlinear Sci. 2026 [passages].** Theorem 4.3 assumes Phi-hat in Diff^1 of the embedded manifold X-tilde. Whether the proxy keeps X-tilde is called "An important question" and handled through attractor blocks, with the remark "It is not clear whether every attractor possesses an attractor block which is a manifold". So the transverse question is assumed away, not answered.
-- **Grigoryeva, Louw, Ortega, Nonlinearity 2025, arXiv:2405.02536 [passages].** Thm 3.11: error growth at rate of the proxy's top Lyapunov exponent, on a compact invariant set of the closed loop.
-- **Manjunath, Ortega, van der Merwe, arXiv:2605.25221 [passages].** Invariant-subspace design BV in V, for ridge training error.
+Lists used: arXiv API by author name and OpenAlex author records, June 2020 on. **Google Scholar was not queried**, so papers on neither arXiv nor OpenAlex could be missing. `24m1714617.pdf` is Hara & Kokubu, not theirs (Sec. 3a). Nothing here was read cover to cover, apart from the grep over every downloaded text listed in B5: all entries say passages, keyword scan or abstract.
 
-Remaining reads pending; see later commits.
+### B1. What anticipates or conflicts with a claim
+
+**No paper of theirs anticipates claims 2, 3, 4 or 5, or the bias part of 6.** A term search over all 22 downloaded texts for zero dynamics, small gain, bubbling, blowout, riddling, conditional Lyapunov and transverse Lyapunov returned no hits except "transverse" in the different sense of B2 item 3. The closest points, most serious first:
+
+1. **A wording conflict to fix before emailing.** The paper says the map is "typically not differentiable". Grigoryeva, Louw, Ortega 2025 say the opposite about ESN maps: "the synchronization maps that they induce have been proved to be typically differentiable [Grig 21a]" (arXiv:2405.02536, Sec. 1). The result behind it, Grigoryeva, Hart, Ortega 2021 Thm III.1(ii), requires L^F_x < min(1, 1/||T phi^{-1}||_inf), a sup-norm rate condition on a compact manifold. Both are right in their regime: their statement is conditional, and the paper's numbers (rate test met in 30/810 and 163/810 at the typical-point level) concern trained chaotic reservoirs. **Suggested wording: "the condition for differentiability [GHO 2021, Hunt et al.] fails in most of the reservoirs we trained".** Avoid implying they are wrong.
+
+2. **Claim 1, smooth case, is already in the line of work they cite.** Grigoryeva et al. 2025, Sec. 3: "the Lyapunov spectrum of the original system is contained in that of the reconstructed system, a number of additional Lyapunov exponents arise, commonly referred to as spurious Lyapunov exponents, some of which may exceed the top Lyapunov exponent". This rests on **Berry & Das 2023**, SIADS 22, 2082 (not their paper, but they rely on it), Thm 3(i), and on **Dechert & Gençay 1996**, Physica D 90, 40.
+   - **Danger point:** Berry & Das state Thm 3(i) under Assumption 2, which requires only that Phi is injective. **Read literally, that covers non-differentiable maps.** Their proof does not: it invokes Dechert & Gençay's Thm 3.1, restated as Lemma 21 with a "C^1 map J" and with Oseledets subspaces carried by DJ(E_j). So the non-smooth case is not proved there. Claim 1 stands, but the paper should cite Berry & Das and say this explicitly, since a referee reading only the theorem statement could object. I did not read Dechert & Gençay directly, only Berry & Das's restatement.
+
+3. **Claims 2 and 3, the readout-extension principle.** Berry & Das Sec. 3 [passage]: "Any choice of w-hat in S leads to a different dynamics ... with X as an invariant ergodic set. Therefore the top Lyapunov exponent ... will be a function of w-hat", with "stability gap" defined as the infimum over extensions and bounded via a retraction under non-expansive g (Thm 3(iii)). They also say "some of the additional Lyapunov exponents may be positive". **This anticipates in words** that training fixes the map only on the data and the neighbourhood decides stability, as do Lu et al. 2018 and Saqib & Padoan. It has no transverse operator, no zero dynamics, no no-go over conditional exponents. It should be cited at Sec. "Training error and conditional exponents".
+
+4. **Claim 4, the trapping step.** Louw & Ortega 2026 Sec. 4 [passage]: "An important question is whether this still holds true when we use the approximation h-hat", answered via McGehee attractor blocks: if d_inf(Phi, Phi-hat) < beta then Phi-hat(X-tilde) lies in X-tilde. They add: "It is not clear whether every attractor possesses an attractor block which is a manifold". Thm 4.3 then assumes Phi-hat in Diff^1(X-tilde), **so the proxy is taken to act on the embedded manifold itself; transverse dynamics do not enter.** My reading: a trained linear readout does not generally map X-tilde into itself, and that is what the paper's transverse displacement measures. So this is a partial antecedent in spirit, with no tube radius and no contraction rate. Bubbling is absent.
+
+5. **Claim 5 context.** Grigoryeva et al. 2025 Thm 3.11: error up to a horizon T is at most epsilon(1 + 2 L_h L_z R e^{t(lambda_1^+ + delta)}), with lambda_1 the top exponent of the proxy on a compact invariant set X'. **Supports** rather than anticipates: when lambda_perp exceeds the source's exponents the spurious ones set the rate. It is computed on an invariant set of the trained system, whereas the paper computes along the driven trajectory, and they note "the error in prediction is not stable with respect to choices of the constants". No predictor comparison, no multi-system scan.
+
+6. **Claim 6.** No analysis. The bias appears only as a setup parameter (zeta in Grigoryeva et al. 2025; none in Louw & Ortega's tanh(Ax + Cm)). Note that Louw & Ortega's ESN has no bias on Lorenz, which is the odd-symmetric setting of Herteux & Räth, though Lorenz's own mean breaks it. Part A has the bias precedents, none of them theirs.
+
+### B2. Paper by paper
+
+| Paper | What it shows | Bearing | Read |
+|---|---|---|---|
+| Grigoryeva, Hart, Ortega, PRE 103, 062204 (2021), arXiv:2010.03218 | Thm III.1: locally state-contracting systems have a continuous GS; C^1 under the sup-norm rate condition. Non-uniqueness across disjoint sets V | Background to 1; **cite** for the rate condition | Intro, Thm III.1 |
+| Grigoryeva, Hart, Ortega, Nonlinearity 36, 4674 (2023), arXiv:2108.05024 | Generic linear reservoirs embed; "topological conjugacy" and C^1 invariants when embedding holds | Background to 1, smooth case; **cite** | Intro, Thm 2.1, theorem statements |
+| Grigoryeva, Louw, Ortega, Nonlinearity 38, 055005 (2025), arXiv:2405.02536 | See B1 items 1, 2, 5. Avoids embedding hypotheses. Corrects "a misstep" in Berry & Das via regular-point angle control | **Cite**, key for 5 and for gaps | Intro, Thm 3.11, Remarks, numerics intro |
+| Louw & Ortega, J. Nonlinear Sci. 36, 81 (2026), arXiv:2512.15530 | Density forecasts stable long-term if system is structurally stable with mixing or attracting measure, and proxy is C^1 close. "Lorenz attractor is not structurally stable", numerics agree anyway. "uniform approximation alone may be insufficient" | Closest in spirit; complementary. **Cite** | Intro, Sec. 4, numerics, conclusions |
+| Manjunath, Ortega, van der Merwe, arXiv:2605.25221 (2026) | Reservoir design so state *increments* cone-concentrate around an input subspace V (BV nearly in V), reducing ridge error. "autonomous prediction may still fail" even with a clean spectrum | "Transverse" means P_{V-perp} B P_{V-perp}, a **driven** quantity, with no closed-loop spectrum. Sibling of Oishi's condition; could be tested for lambda_perp. Cites "State space embedology", **in preparation, not checkable** | Abstract, intro, Thms 1–3 statements, numerics discussion |
+| Ortega & Rossmannek, Neural Comput. 38, 765 (2026), arXiv:2508.19145 | See A2. "contractivity condition is not necessary" for echo-state-family convergence given ESP and state forgetting; example with non-uniform forgetting | Relevant to the uniform contraction gap, existence only; **cite** | Abstract, Thm 1, Secs. 2.6–2.7 |
+| Ortega & Rossmannek, Math. Models Methods Appl. Sci. 36, 1783 (2026), arXiv:2508.07876 | "fading memory and solution stability hold generically — even in the absence of the ESP"; distributional view | Background; abstract-level for the generic claim. May matter if the paper's Sec. on echo states says more | Abstract, one passage |
+| Ortega & Rossmannek, Proc. R. Soc. A 481 (2025), arXiv:2404.08717 | Stochastic ESP under weaker contractivity | Background | Abstract, keyword scan |
+| Grigoryeva, Hamzi, Kemeth, Kevrekidis, Manjunath, Ortega, Physica D 469 (2024), arXiv:2403.10325 | Starting map replaces washout, so autonomous runs start nearer the set; "fast divergence" otherwise | Practical; no transverse analysis. Relevant to initial-condition sensitivity in the paper's opening figure, not to its claims | Abstract, numerics passages |
+| Manjunath & Ortega, Physica D 449 (2023), arXiv:2209.07946 | Invariant measures of driven systems via Foias operators; Wasserstein continuity | Background, driven only | Abstract, scan |
+| Grigoryeva, Lim, Ortega, PRE 111, 035305 (2025), arXiv:2412.09800 | NGRC as kernel regression; valid-time numerics | Background | Keyword scan |
+| Petreczky, Ortega, Rossmannek, Daróczy, IEEE L-CSS 10, 1825 (2026), arXiv:2607.03849 | Input-output stability and forgetting determine the decay of minimal realizations, for state-linear, state-affine, LPV systems | **Possibly useful** for a linear-setting note on zero dynamics; driven only | Abstract |
+| Ashwin, Feudel, Ghil, Lehnertz, Ortega et al., Chaos 36, 040401 (2026) | Focus issue introduction on nonautonomous systems | Possible venue signal only | Metadata |
+
+**Keyword scan only, no closed-loop or transverse content found:** 2304.00490, 2212.14641, 2305.01457, 2502.04832, 2007.12141, 2010.12047, 2212.00396, 2412.08322, 2506.16332, 2512.13642. **Judged out of scope from title, not downloaded:** kernel and Hamiltonian learning (2610.17835, 2605.09643, 2511.06655, 2504.13396, 2403.10070, 2303.*), kernels on manifolds (2310.*, 2302.10623), Parareal (2509.03945, 2411.06225, 2405.12182), 2309.00380, and 2002.05933, 2004.11234, 2010.14615 (approximation and signature theory, pre-2021 preprints).
+
+### B3. What stays new against their work
+
+Claims 2, 3, 4 (explicit radius, bubbling), 5 and 6 entirely, as far as these papers go. Claim 1 in the non-differentiable form, with the Berry & Das caveat of B1 item 2. Their programme is sufficient conditions and bounds under C^1 closeness, structural stability or embedding. The paper is about what fails and why, on trained reservoirs. These are complementary, which makes a genuine case for writing to them.
+
+### B4. What could close the paper's open gaps
+
+The ideas below are my suggestions, not results anyone has proved here.
+
+**Uniform contraction versus negative conditional exponents**
+- **Grigoryeva et al. 2025, Thm 3.1 and Rem. 3.6** are the best template. They handle non-uniformity with Oseledets regular points, a leakage delta and a point-dependent constant R(delta, x), and control the angles between subspaces. Replacing ||Phi_c(t,tau)|| <= C e^{-kappa(t-tau)} with a tempered C(x) e^{(lambda + delta)(t-tau) + delta|tau|} is the natural route for the paper's integral, given integrability.
+- **Stark 1999 Thm 1.5–1.7** does this for the invariant graph on nested sets Lambda_k.
+- **Ortega & Rossmannek 2026** Example 1 shows forgetting can be non-uniform even on a compact space, a warning that existence of the map may need separate hypotheses.
+
+**Trained readouts that are not exact**
+- **Louw & Ortega**: C^1 closeness of the readout via Hornik et al., and Rem. 4.4: "it might be more advantageous to optimize" the C^1 distance. They name "how C^1 approximations can be achieved" in reservoirs as future research, which is the same gap as the paper's N^T F != I on the stable direction. This is a concrete shared question for the email.
+- **Berry & Das Thm 3(ii)**: top exponent is upper semi-continuous in the readout in C^1. That gives a one-sided statement: a nearby readout cannot do much worse than an exact one in a C^1 neighbourhood. Note it does not cover readouts close only on the data.
+- **Grigoryeva et al. 2025, Thm 3.11** needs only uniform epsilon-approximation in the input-output sense and no embedding, so its route may apply where exactness fails.
+
+### B5. What to cite, and for the email
+
+**In the paper:**
+- GHO 2021 and Hunt et al. at the rate condition, with the wording fix of B1 item 1.
+- Berry & Das 2023 and Dechert & Gençay 1996 at Res. "survive", noting the C^1 proof.
+- Grigoryeva et al. 2025 at "A negative transverse exponent" or the forecast error sentence, alongside Bizyaeva.
+- Louw & Ortega 2026 in the introduction ("What is known") and at the tube.
+- Ortega & Rossmannek already cited; add the journal reference (Neural Comput. 38, 765, 2026; the bib has only the arXiv id).
+
+**In the email:** say plainly that the paper builds on GHO 2021 and 2023, and that it complements Louw & Ortega and Grigoryeva et al. 2025 by studying the case those assume away. Three concrete hooks: (a) the tempered version of the surviving-exponent result, using their regular-point tools; (b) C^1 approximation of readouts, their stated open direction; (c) Berry & Das's stability gap against the measured lambda_perp. Ask about "State space embedology" (Manjunath & Ortega, in preparation), the one item that might bear on embeddings and could not be checked. Ortega was on Pietro's thesis committee (thesis title page), so that is a natural opening.
+
+**Not accessed or not checked:** Google Scholar; "State space embedology"; Dechert & Gençay's own text; any paper on neither arXiv nor OpenAlex; supplementary material of 2605.25221; figures, whose content I know only through surrounding text. Metadata for 2405.02536, 2512.15530, 2508.19145, 2508.07876, 2404.08717, 2403.10325, 2209.07946, 2412.09800, 2607.03849, 2010.03218 and Berry & Das were verified through Crossref.
 
 ---
 
