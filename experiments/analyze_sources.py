@@ -72,6 +72,7 @@ def source_row(name, recs, cal):
         "source": name, "d": len(lam), "runs": len(recs), "lambda_1": l1, "lambda_min": lmin,
         "ratio": l1 / abs(lmin), "d_ky": kaplan_yorke(lam),
         "lam1_period": float(lam[0] * cal["period"]),
+        "fast_over_l1": float(cal["fast_rate"] / lam[0]),
         "unstable": k / max(known.sum(), 1), "unstable_lo": wilson(k, max(known.sum(), 1))[0],
         "unstable_hi": wilson(k, max(known.sum(), 1))[1],
         "unstable_rel": float(np.mean(perp[known] / l1 >= UNSTABLE)),
@@ -109,6 +110,8 @@ CANDIDATES = [
     ("CLE/|lambda_min|", "cle_over_lmin", False, False),
     ("loop gain |N^T B|", "gain_median", True, False),
     ("lambda_1 x period", "lam1_period", True, True),
+    ("fastest rate/lambda_1", "fast_over_l1", True, True),
+    ("training NRMSE", "nrmse_median", True, True),
 ]
 
 

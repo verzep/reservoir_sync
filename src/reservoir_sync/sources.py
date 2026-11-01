@@ -196,13 +196,20 @@ def rescaled(source: Source, shift, scale, time_scale: float = 1.0) -> Source:
     return Source(source.name, source.dim, g, Dg, scale * (source.s0 - shift))
 
 
-def make_source(name: str, amplitude: float | None = None, time_scale: float = 1.0) -> Source:
-    """Source `name`, optionally centred with component std `amplitude` and sped up by time_scale."""
+def make_source(name: str, amplitude: float | None = None, time_scale: float = 1.0, offset: float = 0.0) -> Source:
+    """Source `name`, optionally centred with component std `amplitude` and sped up by time_scale.
+
+    `offset` is then a constant added to the last component (z in Lorenz, whose
+    raw mean of 23.6 the centring removes); it needs `amplitude`.
+    """
     source = SOURCES[name]()
     if amplitude is None:
         return source if time_scale == 1.0 else rescaled(source, np.zeros(source.dim), np.ones(source.dim), time_scale)
     stats = ATTRACTOR_STATS[name]
-    return rescaled(source, stats["mean"], amplitude / np.asarray(stats["std"]), time_scale)
+    scale = amplitude / np.asarray(stats["std"])
+    shift = np.array(stats["mean"], dtype=float)
+    shift[-1] -= offset / scale[-1]
+    return rescaled(source, shift, scale, time_scale)
 
 
 # Attractor mean and std per component, from experiments/calibrate_sources.py

@@ -85,3 +85,10 @@ def test_kaplan_yorke_and_holm():
 
     assert kaplan_yorke([0.906, 0.0, -14.57]) == pytest.approx(2.062, abs=1e-3)
     np.testing.assert_allclose(holm(np.array([0.01, 0.04, 0.03])), [0.03, 0.06, 0.06])
+
+
+def test_offset_shifts_only_the_last_component():
+    a, b = make_source("lorenz", amplitude=6.0), make_source("lorenz", amplitude=6.0, offset=16.0)
+    np.testing.assert_allclose(b.s0 - a.s0, [0, 0, 16.0])
+    y = a.s0 + 0.5
+    np.testing.assert_allclose(b.g(y + [0, 0, 16.0]), a.g(y))

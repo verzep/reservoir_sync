@@ -72,6 +72,7 @@ class Config:
     transverse_penalty: float = 0.0  # mu in ridge + mu sum_t ||N^T A_c(t)||^2 (readout.jacobian_gram)
     amplitude: float | None = None  # centre the source, component std = amplitude (None: raw)
     time_scale: float = 1.0  # source sped up by this factor
+    offset: float = 0.0  # constant added to the last normalized component (sources.make_source)
     t_settle: float = 50.0  # transient of the source before the washout
 
 
@@ -85,7 +86,7 @@ def _finite_list(x):
 
 def run(cfg: Config) -> dict:
     t_start = time.time()
-    source = make_source(cfg.source, cfg.amplitude, cfg.time_scale)
+    source = make_source(cfg.source, cfg.amplitude, cfg.time_scale, cfg.offset)
     dt = min(cfg.dt, 0.25 / cfg.gamma)  # keep gamma * dt small for RK4
     res = random_reservoir(
         cfg.n, source.dim, cfg.kind, cfg.spectral_radius, cfg.input_scale,
