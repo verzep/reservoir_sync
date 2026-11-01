@@ -7,6 +7,57 @@ Evidence labels:
 - **[abstract]**: only the abstract or a search snippet.
 - **[meta]**: only the bibliographic record was verified. Anything said about the paper is a lead, not an attribution.
 
+## Part C. "Reservoir as a Dynamical System: A Tutorial Review"
+
+Jalan, Feng, Sisodia, Nakajima, arXiv:2610.32421v1 (23 Oct 2026). **Read:** Secs. 1–5.6 and the Sec. 6 opening in the extracted text, Sec. 8 and the references; rest of Sec. 6 and Sec. 7 by keyword. Figures known only through captions; the supplementary notebooks (Zenodo) were not opened or run. I did not check whether it has been published.
+
+**Verdict: no threat.** It is a practical guide to bifurcation and finite-time-exponent diagnostics on the closed-loop map, largely built on parameter-aware reservoirs and the logistic map. "transvers" appears only as the unrelated topological notion and "conditional Lyapunov" once, in passing on memory capacity.
+
+### C1. The six claims
+
+| Claim | Status | Where (shortest quote) |
+|---|---|---|
+| Exact dynamics on the synchronized set | **Partly**, as reported prior work with no derivation | Sec. 5.6(ii): the loop "remains on the invariant manifold". Sec. 5.5: conjugacy attributed to Hart et al. |
+| Surviving exponents | **Absent** | No statement. Sec. 5.4 compares FTLE distributions of one map's largest exponent |
+| Zero dynamics, restricted small gain | **Absent** | Nearest: Sec. 5.2 reports Oishi et al.'s "spurious slow modes" from Win Wout |
+| No-go: training data can't decide closed-loop stability | **Absent** | Sec. 5.6(ii) says climate needs an additional condition: the driven attractor "must remain stable under autonomous dynamics", citing Lu et al. No no-go, no exact family |
+| Tube | **Absent** | Nothing on decoder error and distance to the set |
+| Negative exponent not enough (bubbling) | **Absent** | Nearest tool: FTLE distributions, Sec. 5.4, used to identify crises. No transverse rates, no embedded-orbit argument |
+
+**One inaccuracy to avoid copying.** Sec. 5.5 says Hart et al. prove a linear readout gives an autonomous ESN "topologically conjugate" to the target, without qualification. The source's abstract (arXiv:1908.05202, checked) adds that the system must be structurally stable. Cite Hart et al. directly.
+
+### C2. Bias, offset, symmetry, closed-loop stability
+
+**Nothing direct.** The word "bias" occurs only in the LSTM equations (Sec. 6.1) and in Sec. 5.2's fine print as a parameter. It cites neither Herteux & Räth nor Platt et al., and its Eq. 1 reservoir has no bias term, so it does not note the odd symmetry. The only symmetry material is translational (Goldmann et al., Sec. 5.5).
+
+**One observation, mine, not the authors':** its closed loop (Eq. 4) is r' = (1-a) r + a tanh(Lambda r + Omega), with Omega = k_b W_b (eps - eps_b) a constant random vector. So at fixed eps, the parameter channel is formally an independent random bias, and Sec. 5.2 follows Jacobian eigenvalues as eps varies. This is **not evidence for your finding**: there the readout is trained across several eps and the target itself bifurcates, so eigenvalues crossing outward at eps near 3.62 are the intended behaviour. But it shows that the parameter-aware literature already moves closed-loop stability with a random constant, and it may deserve one clause.
+
+**Your 19-of-19 result** (independent random bias stabilizes as much as an offset aligned with V) is neither supported nor contradicted by the review. Against Part A: it strengthens the point that the effect isn't about the input direction, and I found no source reporting that comparison. I have not seen your 19-of-19 numbers myself; this repeats the brief.
+
+### C3. Papers it cites, new to this map and checked at source
+
+| Paper | What the source shows | Bearing | Read |
+|---|---|---|---|
+| **Kabayama, Komuro, Kuniyoshi, Aihara, Nakajima, PRR 7, L032058 (2025)**, 10.1103/vqvp-mbxx, arXiv:2504.12695 | If R(-x,-u) = -R(x,u) and phi is odd, the closed loop inherits the symmetry and a "mirror" attractor "necessarily exists"; raising spectral radius gives an attractor-merging crisis with intermittency | **Relevant to bias.** Mechanism for failure tied to symmetry; connects to spectral radius trend in your scan. Should be cited with Herteux & Räth | Abstract, keyword passages |
+| **Kabayama, Komuro, Aihara, Nakajima, JJIAM 42, 1459 (2025)**, 10.1007/s13160-025-00740-3 | Standard ESN on Lorenz: attractor decomposes into two spirals split by a saddle, an artifact from "symmetry and nonlinearity" | **Relevant to bias**, and to why uncentered Lorenz differs; a Lorenz case where the reservoir's own structure, not the source, decides. Supports "the choice of reservoir matters" | Abstract, keyword passages |
+| **Kabayama, Kuniyoshi, Aihara, Nakajima, PRE 111, 034207 (2025)**, arXiv:2407.09545 | Chaos from periodic skeletons by working near CLE zero. "accurate reconstruction requires a sufficiently negative CLE"; argues closed-loop behaviour comes from the balance of prediction error and driven convergence | **Conflicts in emphasis with the no-go**: treats driven convergence as what controls the closed loop. Their setting is periodic skeletons and a necessary condition, so no contradiction. Cite as the view you refine | Passages |
+| **Sisodia & Jalan, PRE 113, L052201 (2026)**, 10.1103/8b7z-fnjd, arXiv:2510.13246 | Fixed points and unstable orbits of the trained map reproduce boundary and merging crises | **Background** for end states; no transverse or bias content by keyword | Abstract, keyword scan |
+| **Sisodia & Jalan, PRE 110, 034211 (2024)**, arXiv:2407.14951 | Eigenvalue analysis of parameter-aware closed loop | **Background**; already referenced by Oishi | Keyword scan |
+| **Duan et al., PRR 5, L022041 (2023)**, arXiv:2303.09042 | Generic embedding for reservoir states; delays reduce size | **Background** to synchronization section | Keyword scan |
+| **Kong et al., J. Phys. Complex. 2, 035014 (2021)**, 10.1088/2632-072X/ac0b00 | Transient chaos and intermittency with parameter channel | **Background** to end states | Abstract |
+| **Terasaki & Nakajima, PRR 7, 023119 (2025)**, arXiv:2405.08825 | Period-three learning in a limit of zero spectral radius; discusses symmetries and output bias | **Possible**, for symmetry; not analysed | Keyword scan |
+| **Alam, Ott, Timofeyev, Chaos 36, 023105 (2026)**, arXiv:2505.24099 | Transfer learning for attractors | Not relevant by keyword scan | Keyword scan |
+
+**Cited there, not checked:** Sisodia & Jalan EPJB 99, 85 (2026), metadata only, no accessible text tried; Akashi et al. arXiv:2606.26727; Srinivasan et al., Nat. Commun. 16, 10212 (2025), which may bear on operating point through E-I balance and is worth a look; Hramov et al. 2025; Wei et al. 2026.
+
+### C4. Echo state property and generalized synchronization
+
+**Not usable as a reference.** Sec. 5.6(v) says the ESP is "also referred to as fading memory", which Ortega & Rossmannek 2026 (A2) show is not an identity. Sec. 5.6(ii) mentions GS separately and Sec. 5.5 defines the echo state map, but the review never relates ESP to GS. Keep the references in A2.
+
+**Could not access or verify:** see the read list at the top of this part. The review's other descriptions of prior work were not audited, apart from those above.
+
+---
+
 ## Part B. Overlap check: Ortega and Grigoryeva, 2021 to now
 
 Claims tested, from "Learn to Synchronize, Fail to Predict": (1) source unstable and neutral exponents survive without a differentiable map; (2) transverse modes are zero dynamics, with time-varying factorization and restricted small gain; (3) no function of conditional exponents, reconstruction error and source decides lambda_perp, with an exact chaotic family; (4) tube theorem, and bubbling at negative lambda_perp; (5) lambda_perp predicts valid time across 19 systems, while source exponents don't predict the unstable fraction; (6) bias or offset lowers lambda_perp.
