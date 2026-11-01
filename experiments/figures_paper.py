@@ -9,9 +9,11 @@
 4. fig_gap: lambda_perp vs the largest CLE.
 5. fig_opening: two reservoirs alike in training, opposite in free run (needs no results).
 6. fig_overview: schematic of training and closing the loop (needs no results).
+7. fig_sources: the 19-system scan (needs --source-scan).
 """
 
 import argparse
+import csv
 import json
 from pathlib import Path
 
@@ -308,10 +310,53 @@ def fig_gap(data, out):
     fig.savefig(out / "fig_gap.pdf")
 
 
+def fig_sources(scan, out):
+    read = lambda arm: {r["source"]: r for r in csv.DictReader((scan / f"sources_{arm}.csv").open())}
+    base, offset = read("lambda"), read("lambdaoff")
+    names = {"rossler": "Rössler", "lu_chen": "Lu–Chen", "lorenz": "Lorenz", "thomas": "Thomas", "aizawa": "Aizawa"}
+    blue, orange = GAMMA_COLORS[1.0], GAMMA_COLORS[5.0]
+    fig, (a, b, c) = plt.subplots(1, 3, figsize=(6.5, 2.6), constrained_layout=True)
+    rho = sorted(float(r["rho_perp"]) for r in base.values())
+    a.scatter(rho, np.arange(len(rho)), s=12, color=blue, lw=0)
+    a.axvline(0, color=INK, lw=0.6)
+    a.set_xlim(-1, 0.05)
+    a.set_yticks([])
+    a.set_xlabel("ρ(λ⊥, valid time)")
+    a.set_ylabel("the 19 systems, sorted")
+    a.set_title("(a) λ⊥ predicts in every system", loc="left", fontsize=8)
+    rows = list(base.values())
+    x, y = col(rows, lambda r: r["ratio"]), col(rows, lambda r: r["unstable"])
+    lo, hi = col(rows, lambda r: r["unstable_lo"]), col(rows, lambda r: r["unstable_hi"])
+    b.errorbar(x, y, yerr=[y - lo, hi - y], fmt="o", ms=3, color=blue, ecolor=GRID, elinewidth=1)
+    b.set_xscale("log")
+    b.set_xticks([0.02, 0.05, 0.1, 0.2, 0.5], ["0.02", "0.05", "0.1", "0.2", "0.5"])
+    b.minorticks_off()
+    b.set_ylim(0, 1)
+    b.set_xlabel("λ₁ / |λ_min|")
+    b.set_ylabel("unstable fraction")
+    b.set_title("(b) The source does not set it", loc="left", fontsize=8)
+    for key, shift in [("rossler", 0.05), ("lu_chen", -0.07), ("thomas", -0.08), ("lorenz", -0.07)]:
+        r = base[key]
+        b.text(float(r["ratio"]), float(r["unstable"]) + shift, names[key], fontsize=6.5, color=MUTED)
+    u, v = col(rows, lambda r: r["unstable"]), col(rows, lambda r: offset[r["source"]]["unstable"])
+    c.plot([0, 1], [0, 1], color=MUTED, lw=0.8, ls="--")
+    c.scatter(u, v, s=12, color=orange, lw=0)
+    c.set(xlim=(0, 1), ylim=(0, 1))
+    c.set_xlabel("unstable fraction, no offset")
+    c.set_ylabel("with constant offset")
+    c.set_title("(c) An offset stabilizes", loc="left", fontsize=8)
+    for key, dy in [("lorenz", 0.03), ("thomas", -0.07)]:
+        c.text(u[list(base).index(key)] + 0.02, v[list(base).index(key)] + dy, names[key], fontsize=6.5, color=MUTED)
+    for ax in (a, b, c):
+        style(ax)
+    fig.savefig(out / "fig_sources.pdf")
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--results", type=Path, required=True)
     p.add_argument("--out", type=Path, required=True)
+    p.add_argument("--source-scan", type=Path, help="results/source_scan, for fig_sources")
     a = p.parse_args()
     a.out.mkdir(parents=True, exist_ok=True)
     fig_counterexample(a.out)
@@ -321,6 +366,8 @@ def main():
     fig_tangent_survival(data, a.out)
     fig_predictors(data, a.out)
     fig_gap(data, a.out)
+    if a.source_scan:
+        fig_sources(a.source_scan, a.out)
     print(sorted(x.name for x in a.out.glob("*.pdf")))
 
 
