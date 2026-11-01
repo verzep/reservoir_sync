@@ -240,10 +240,12 @@ def figure(path, per_arm):
 
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
+    import matplotlib.ticker
 
     arms = list(per_arm)
-    panels = [("ratio", r"$\lambda_1/|\lambda_{\min}|$", True), ("d_ky", r"Kaplan-Yorke dimension", False),
-              ("lam1_period", r"$\lambda_1 \times$ dominant period", True)]
+    panels = [("ratio", r"$\lambda_1/|\lambda_{\min}|$", [0.01, 0.03, 0.1, 0.3, 1]),
+              ("d_ky", r"Kaplan-Yorke dimension", None),
+              ("lam1_period", r"$\lambda_1 \times$ characteristic period", [0.3, 1, 3])]
     fig, axes = plt.subplots(len(arms), len(panels), figsize=(10, 2.9 * len(arms)), sharey=True, squeeze=False)
     for i, arm in enumerate(arms):
         for ax, (col, label, logx) in zip(axes[i], panels):
@@ -260,6 +262,9 @@ def figure(path, per_arm):
                                 textcoords="offset points", fontsize=8, color=INK)
             if logx:
                 ax.set_xscale("log")
+                ax.set_xticks(logx)
+                ax.xaxis.set_major_formatter(matplotlib.ticker.FormatStrFormatter("%g"))
+                ax.xaxis.set_minor_locator(matplotlib.ticker.NullLocator())
             ax.set_ylim(-0.04, 1.04)
             ax.grid(color="#e6e6ea", lw=0.6)
             ax.set_axisbelow(True)
