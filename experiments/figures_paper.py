@@ -8,6 +8,7 @@
 3. fig_predictors: median valid time vs training error, largest CLE and lambda_perp.
 4. fig_gap: lambda_perp vs the largest CLE.
 5. fig_opening: two reservoirs alike in training, opposite in free run (needs no results).
+6. fig_overview: schematic of training and closing the loop (needs no results).
 """
 
 import argparse
@@ -60,6 +61,113 @@ def scatter_by_gamma(ax, x, y, gamma):
     for g, c in GAMMA_COLORS.items():
         m = gamma == g
         ax.scatter(x[m], y[m], s=7, color=c, lw=0.2, edgecolor="white", label=f"γ = {g:g}")
+
+
+def fig_overview(out):
+    # the three phases, drawn with the data of the stable reservoir of fig_opening
+    from matplotlib.patches import Circle, FancyArrowPatch, Rectangle
+
+    from reservoir_sync.closed_loop import run_autonomous
+    from reservoir_sync.driven import drive, settle_source
+    from reservoir_sync.readout import fit_readout
+    from reservoir_sync.reservoirs import random_reservoir
+    from reservoir_sync.sources import SOURCES
+
+    source = SOURCES["rossler"]()
+    dt, n_wash, n_train, n_pred = 0.01, 2000, 10000, 30000
+
+    def trained(seed):
+        res = random_reservoir(200, source.dim, "tanh", 0.5, 0.05, 0.5, 5.0, None, seed)
+        s0 = settle_source(source, dt, 50.0, seed=seed)
+        full = drive(source, res, s0, np.zeros(res.n), dt, n_wash + n_train)
+        train = full[n_wash:]
+        N = fit_readout(train.R, train.S, 1e-6)
+        return train, train.R @ N, run_autonomous(res, N, train.R[-1], dt, n_pred) @ N
+
+    train, decoded, free_stable = trained(1)
+    free_unstable = trained(21)[2]
+    W, H = 6.5, 3.5
+    blue, orange = GAMMA_COLORS[1.0], GAMMA_COLORS[5.0]
+    fig = plt.figure(figsize=(W, H))
+    ax = fig.add_axes([0, 0, 1, 1])
+    ax.set(xlim=(0, W), ylim=(0, H))
+    ax.axis("off")
+
+    def thumb(x0, y0, x1, y1, curves, muted=False):
+        a = fig.add_axes([x0 / W, y0 / H, (x1 - x0) / W, (y1 - y0) / H])
+        for xs, ys, c, lw in curves:
+            a.plot(xs, ys, color=c, lw=lw)
+        a.set(xticks=[], yticks=[])
+        for s in a.spines.values():
+            s.set_color(GRID if muted else MUTED)
+            s.set_linewidth(0.6)
+            s.set_linestyle("--" if muted else "-")
+        a.margins(0.06)
+
+    def arrow(points, color=INK, ls="-", lw=1.0):
+        ax.plot(*zip(*points[:-1]), color=color, ls=ls, lw=lw, solid_capstyle="butt")
+        ax.add_patch(FancyArrowPatch(points[-2], points[-1], arrowstyle="-|>", mutation_scale=8,
+                                     color=color, ls=ls, lw=lw, shrinkA=0, shrinkB=0))
+
+    def surrogate(cx, cy, r=0.42):
+        ax.add_patch(Circle((cx, cy), r, fc="#f1f0ec", ec=MUTED, lw=0.8))
+        rng = np.random.default_rng(3)
+        angles = np.arange(7) * 2 * np.pi / 7 + 0.3
+        pts = np.c_[cx + 0.28 * np.cos(angles), cy + 0.28 * np.sin(angles)]
+        for i, j in rng.integers(0, 7, (11, 2)):
+            if i != j:
+                ax.plot(*zip(pts[i], pts[j]), color=MUTED, lw=0.4)
+        ax.scatter(*pts.T, s=16, fc="white", ec=INK, lw=0.6, zorder=3)
+
+    def label(x, y, text, **kw):
+        ax.text(x, y, text, ha=kw.pop("ha", "center"), va="center", **kw)
+
+    y1, y2 = 2.42, 0.72  # row centers
+    Sx, Sy = train.S[:, 0], train.S[:, 1]
+    t = np.arange(4000) * dt
+    scale = train.S.max(axis=0) - train.S.min(axis=0)
+    mid = train.S.min(axis=0)
+
+    def signals(x):  # the three coordinates, stacked
+        return [(t, (x[:4000, i] - mid[i]) / scale[i] * 0.85 + 2 - i, c, 0.6) for i, c in
+                enumerate((blue, INK, orange))]
+
+    label(1.05, 3.37, "Source", fontweight="bold")
+    label(3.75, 3.37, "Surrogate", fontweight="bold")
+    label(5.5, 3.37, "Output", fontweight="bold")
+    label(0.2, y1, "Listening\nand fitting", rotation=90, fontweight="bold")
+    label(0.2, y2, "Autonomous", rotation=90, fontweight="bold")
+    ax.plot([0.05, W - 0.05], [1.5, 1.5], color=GRID, lw=0.8)
+
+    # listening and fitting: the full state drives the surrogate
+    label(1.05, 3.14, r"$\dot{\mathbf{s}}=\mathbf{g}(\mathbf{s})$")
+    thumb(0.55, y1 - 0.5, 1.55, y1 + 0.5, [(Sx, Sy, MUTED, 0.4)])
+    arrow([(1.55, y1), (1.95, y1)])
+    label(2.5, 3.14, r"$\mathbf{s}(t)$")
+    thumb(1.95, y1 - 0.5, 3.0, y1 + 0.5, signals(train.S))
+    arrow([(3.0, y1), (3.33, y1)])
+    label(3.75, 3.14, r"$\dot{\mathbf{r}}=\mathbf{f}(\mathbf{r},\mathbf{s})$")
+    surrogate(3.75, y1)
+    label(5.5, 3.14, r"$\hat{\mathbf{s}}=\boldsymbol{\psi}(\mathbf{r})\approx\mathbf{s}$")
+    thumb(4.95, y1 - 0.5, 6.05, y1 + 0.5, signals(decoded))
+    arrow([(4.17, y1), (4.95, y1)], ls="--")
+    label(4.56, y1 + 0.12, r"fit $\boldsymbol{\psi}$", fontsize=7.5)
+
+    # closed loop: same training, two possible fates
+    thumb(0.55, y2 - 0.5, 1.55, y2 + 0.5, [(Sx, Sy, GRID, 0.4)], muted=True)
+    label(1.05, 0.1, "disconnected", fontsize=7.5, color=MUTED)
+    surrogate(3.75, y2)
+    label(3.75, y2 + 0.56, r"$\dot{\mathbf{r}}=\mathbf{f}(\mathbf{r},\boldsymbol{\psi}(\mathbf{r}))$")
+    thumb(4.75, y2 - 0.36, 5.5, y2 + 0.39, [(Sx, Sy, GRID, 0.5), (free_stable[:, 0], free_stable[:, 1], blue, 0.4)])
+    thumb(5.6, y2 - 0.36, 6.35, y2 + 0.39, [(Sx, Sy, GRID, 0.5), (free_unstable[:, 0], free_unstable[:, 1], orange, 0.5)])
+    label(5.125, y2 + 0.5, "stays", fontsize=7.5, color=blue)
+    label(5.975, y2 + 0.5, "leaves", fontsize=7.5, color=orange)
+    arrow([(4.17, y2), (4.75, y2)])
+    label(4.46, y2 + 0.12, r"$\boldsymbol{\psi}$", fontsize=7.5)
+    arrow([(4.46, y2), (4.46, 0.1), (2.85, 0.1), (2.85, y2), (3.33, y2)], color=INK, lw=1.2)
+    label(3.65, 0.19, "output fed back as input", fontsize=7.5)
+    label(5.55, 0.12, "what decides?", fontsize=8, fontstyle="italic")
+    fig.savefig(out / "fig_overview.pdf")
 
 
 def fig_opening(out):
@@ -207,6 +315,7 @@ def main():
     a = p.parse_args()
     a.out.mkdir(parents=True, exist_ok=True)
     fig_counterexample(a.out)
+    fig_overview(a.out)
     fig_opening(a.out)
     data = {name: load(a.results / f) for name, f in SCANS.items()}
     fig_tangent_survival(data, a.out)
