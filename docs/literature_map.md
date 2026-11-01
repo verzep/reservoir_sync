@@ -11,7 +11,7 @@ Evidence labels:
 
 Jalan, Feng, Sisodia, Nakajima, arXiv:2610.32421v1 (23 Oct 2026). **Read:** Secs. 1–5.6 and the Sec. 6 opening in the extracted text, Sec. 8 and the references; rest of Sec. 6 and Sec. 7 by keyword. Figures known only through captions; the supplementary notebooks (Zenodo) were not opened or run. I did not check whether it has been published.
 
-**Verdict: no threat.** It is a practical guide to bifurcation and finite-time-exponent diagnostics on the closed-loop map, largely built on parameter-aware reservoirs and the logistic map. "transvers" appears only as the unrelated topological notion and "conditional Lyapunov" once, in passing on memory capacity.
+**Verdict: no threat.** It is a practical guide to bifurcation and finite-time-exponent diagnostics on the closed-loop map, largely built on parameter-aware reservoirs and the logistic map. The string "transvers" does not occur in the text, and "conditional Lyapunov" occurs once, in passing on memory capacity.
 
 ### C1. The six claims
 
@@ -28,7 +28,7 @@ Jalan, Feng, Sisodia, Nakajima, arXiv:2610.32421v1 (23 Oct 2026). **Read:** Secs
 
 ### C2. Bias, offset, symmetry, closed-loop stability
 
-**Nothing direct.** The word "bias" occurs only in the LSTM equations (Sec. 6.1) and in Sec. 5.2's fine print as a parameter. It cites neither Herteux & Räth nor Platt et al., and its Eq. 1 reservoir has no bias term, so it does not note the odd symmetry. The only symmetry material is translational (Goldmann et al., Sec. 5.5).
+**Nothing direct.** The word "bias" occurs only for the LSTM equations (Sec. 6.1). It does not cite Herteux & Räth or Platt et al. 2022 (it cites Platt et al. 2021, on predictive GS), and its Eq. 1 reservoir has no bias term, so it does not note the odd symmetry. The only symmetry material is translational (Goldmann et al., Sec. 5.5).
 
 **One observation, mine, not the authors':** its closed loop (Eq. 4) is r' = (1-a) r + a tanh(Lambda r + Omega), with Omega = k_b W_b (eps - eps_b) a constant random vector. So at fixed eps, the parameter channel is formally an independent random bias, and Sec. 5.2 follows Jacobian eigenvalues as eps varies. This is **not evidence for your finding**: there the readout is trained across several eps and the target itself bifurcates, so eigenvalues crossing outward at eps near 3.62 are the intended behaviour. But it shows that the parameter-aware literature already moves closed-loop stability with a random constant, and it may deserve one clause.
 
