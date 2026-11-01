@@ -7,6 +7,88 @@ Evidence labels:
 - **[abstract]**: only the abstract or a search snippet.
 - **[meta]**: only the bibliographic record was verified. Anything said about the paper is a lead, not an attribution.
 
+## Part A. Broader map for the current paper (2 Nov 2026)
+
+Paper read: "Learn to Synchronize, Fail to Predict" (origin/main 19ba85e): introduction and the sections "What training determines" and "Numerical results". Parts 0–7 below were written for the earlier draft "Closing the Loop"; their passage-level evidence still stands, but where they discuss "the draft" they mean that version.
+
+Labels as below: [text], [abstract], [meta]. "[text, passages]" means I read the sections quoted, not the whole paper.
+
+### A1. What undercuts a novelty claim
+
+1. **The bias result is largely anticipated for forecast skill and normalization. Neither Herteux & Räth nor Platt et al. is in the paper's bibliography today.** What the paper adds is the *stability* measurement, and it should say so explicitly.
+   - **Platt, Penny, Smith, Chen, Abarbanel 2022**, Neural Networks 153, 530–552 [text, passages]. The closest precedent, closer than Herteux & Räth. "The bias term in the RC equation is found to be criticaly important ... for all but the L63 system". Without it, the optimizer finds no working parameters for many models. They also find that subtracting each variable's mean and dividing by its standard deviation is "deleterious", and they recommend against it. Their reading: it destroys cross-variable information.
+   - **Herteux & Räth 2020**, Chaos 30, 123142 [text]. Tanh is odd, so with no bias the ESN cannot distinguish a signal from its inverse, and it predicts a "mirror-attractor". On zero-mean Lorenz (Table I): simple ESN 1.6 Lyapunov times and lambda 0.2; output bias 2.6 and 0.3; input shift 11.0 and 0.87 (true value 0.87). "This method was the only one to never produce outliers of completely failed predictions."
+   - **Bearing on the paper:** its sentence "Lorenz is 6% unstable in our main scan but 30% here, because the z coordinate of Lorenz has a large mean and centering removes it" has a direct precedent in Herteux & Räth's zero-mean Lorenz experiment. Its pooled scan uses per-coordinate centering and scaling, which is Platt's scheme 1, the one they warn against. The paper should flag this: the unstable fractions across the 19 systems are measured under a normalization already reported to harm forecasts.
+   - **What stays new:** the bias and offset effect measured on lambda_perp and on unstable fractions across 19 systems, lowering them in 18 of 19 by 0.21 on average; and the observation that offset and bias are the same parameter (b + Vc). I found no paper linking bias, symmetry or saturation to transverse exponents, in these papers or in the citing papers screened. This is a search result, not a proof of absence.
+   - **An important distinction the paper can use:** its reservoirs already have random b in +-0.5, so the odd symmetry is *already broken* before any offset is added. Symmetry breaking alone therefore cannot explain its offset effect, whereas it is Herteux & Räth's whole explanation. Herteux & Räth themselves note that "formally breaking the symmetry alone is not enough". The operating point on the tanh is the natural alternative: see A3.
+
+2. **The output-bias case is a caveat for any general statement "bias stabilizes".** Herteux & Räth's output bias barely helps, and Barbosa et al. 2021 find bias the worst of three symmetry fixes on the parity task, since "the bias can saturate the node state making it less sensitive to external and internal inputs". The paper's claim concerns input-side bias; keep that wording.
+
+3. **System dependence of bias is already reported, in a form that bears on "we cannot explain" the Rössler–Lorenz gap.** Platt 2022 excepts L63. Hurley, Restrepo, Shaheen 2024 [text, passages] find that bias matters for small reservoirs and that "small or zero bias terms give similarly good performance" for large ones on Lorenz. Neither explains why, so the paper's open question stays open, but it should cite them.
+
+4. **No undercut found** for: survival of source exponents without a smooth map; zero dynamics for chaotic sources; the no-go with chaotic sources; lambda_perp predictive across 19 systems; source exponents not predicting the unstable fraction. Earlier parts of this file give the closest work: Saqib & Padoan (linear zero dynamics), Hunt–Ott–Yorke and Stark (derivative formula under the rate condition), Oishi et al. Coverage of "which systems are hard" was the weakest search here: none of the screened papers tests source exponents against an unstable fraction, but I did no dedicated search on predictability benchmarks.
+
+### A2. Echo state property and generalized synchronization: is there a paper saying they are the same?
+
+**Yes, several, and the closest statement of "the same thing" is Ahmed, Tennie, Magri 2025. The paper's own "prerequisite" wording is defensible, but the strict claim of identity needs care.**
+
+| Work | What it says | Status |
+|---|---|---|
+| **Ahmed, Tennie, Magri 2025**, Proc. R. Soc. A, 10.1098/rspa.2025.0550 (arXiv:2506.22335) [text, passages] | "GS and ESP are the same conditions under two different names, which originate from two different communities." Argued, in a quantum-reservoir paper; they prove it for their recurrence-free design only | **Probably what Pietro recalls**; he should check |
+| **Verzelli, Alippi, Livi 2021** and thesis Sec. 11.2 [text] | "the existence of an input echo function is equivalent to the existence of a synchronization function", "Yet, the analogy is not perfect as the ESP requires phi to be unique" | His own statement, and the most careful |
+| **A. G. Hart 2024**, Thm 2.8 [text] | Uniform V-GS holds if and only if the system is uniformly V-asymptotically stable. Remark 2.3: that stability is "closely related" to the ESP. Attributes the asymptotic-stability equivalence to Kocarev & Parlitz | **The actual theorem** |
+| **Kocarev & Parlitz 1996** | Via Hart and Hunt–Ott–Yorke [text]: GS occurs if the response is asymptotically stable for all drive states near the attractor; the original was not read [meta] | Origin |
+| **Hart, Hook, Dawes 2020**, Thm 2.2.2 [text] | Echo State Map, with ||A||_2 < min(1, 1/||Dphi^{-1}||_inf), "the unique C^1 generalized synchronisation". The rate condition is in the hypothesis, so this is sufficiency for a contractive case, not an equivalence | Paper cites correctly |
+| **A. G. Hart thesis 2021** Sec. 3 [text, passages] | "closely related"; state contracting gives ESP; ESP gives C^1 GS under assumptions | Background |
+| **Ortega & Rossmannek arXiv:2508.19145** [text, passages] | Unifies fading memory, echo states, state and input forgetting. "A prerequisite for the existence of a GS is the ESP of the system." The semi-conjugacy is GS. Not an equivalence theorem: ESP alone does not give GS as an embedding, and the paper's main diagram concerns forgetting notions | Paper cites correctly for "prerequisite" |
+
+The difference of quantifiers explains why these disagree: the ESP is a property across input sequences, and GS is a property for the inputs a given source generates. Manjunath & Jaeger 2013 on the ESP linked to an input is the standard reference for that split [meta]. **Suggested wording for the Synchronization section:** keep "prerequisite" with Ortega & Rossmannek, and add that for inputs generated by an invertible source the two are essentially the same, up to uniqueness, citing Verzelli 2021 and Hart 2024 Thm 2.8, with Ahmed et al. for "same conditions under two names".
+
+### A3. Bias, symmetry and saturation
+
+| Work | What it shows | Bearing | Read |
+|---|---|---|---|
+| Herteux & Räth 2020 | See A1 | **Anticipates** benefit on zero-mean Lorenz; symmetry explanation, which doesn't cover already-biased reservoirs | Full text |
+| Platt et al. 2022 | See A1. Fig. 8: bias sets the tanh operating point; "Around the origin the RC has maximal gain, while a high bias term will reduce the gain" | **Anticipates** skill effect; gives the gain mechanism | Passages (abstract, Sec. 3.1, 5.4–5.6, conclusions) |
+| Flynn, Herteux, Tsachouridis, Räth, Amann 2021, Chaos 31, 073122 | Symmetric training data forbid the square readout matrix; shifting one attractor restores it. Lists bias, input shift and square readout as fixes but studies only the square readout, in a multifunctional setting. No closed-loop stability analysis | **Background** for bias; does not anticipate it beyond repeating Herteux & Räth | Passages, abstract |
+| Barbosa et al. 2021, PRE 104, 045307 | Matching symmetry to the task boosts performance; bias worst on parity; saturation mechanism | **Background**, caveat | Abstract, Sec. on symmetry adjustment |
+| Hurley, Restrepo, Shaheen 2024, J. Phys. Complex. 5, 035004 | Forecast horizon against shifted tanh, b from -3 to 3: gains at small N, little at large N on Lorenz | **Supports**, with limits | Abstract, Sec. 3.3 |
+| O'Hagan, Keane, Flynn 2025, Chaos 35, 093130 | Untrained attractors ("confabulation"); bias used as a parameter-awareness knob; square readout to prevent mirror-attractors | **Background** for runs that fail at negative lambda_perp | Passages |
+| Thesis Sec. 4.2 [text] | "The bias ... controls whether the unit will operate near its linear region or near the saturating one"; cites Herteux & Räth; "The bias term breaks this symmetry" | Pietro's own earlier position; no stability statement | Passage |
+
+**A hypothesis, mine and not tested:** the paper's sum rule makes the transverse sum grow with the mean of tr N^T B_c, and B_c contains diag(tanh') V, so a larger offset pushes units toward saturation and reduces B_c. If Platt's "reduce the gain" is the operative mechanism, the loop gain should fall with offset. Note that the driven contraction also changes, through D_theta in A_c. The repo's `feedback_gain_rms` could test this. The paper currently says it has not tested an independent bias directly; this is the test that would turn "reservoir setting" into a mechanism.
+
+Input-shift form: Herteux & Räth's shift is a random vector gamma in tanh(A r + W x + gamma), which has the same form as the paper's b + Vc, so the identification in the paper is consistent with theirs.
+
+### A4. The thesis and his other papers
+
+**Confirmed as Pietro's.** "Learning Dynamical Systems Using Dynamical Systems: The Reservoir Computing Approach", doctoral dissertation, USI Lugano, accepted 10 January 2022; advisors Alippi and Livi; committee Rizzoli, Krause, Ortega, Ashwin, Micheli [text; PDF supplied by the user; title page; repository record susi.usi.ch/documents/319318]. Read closely: front matter, contents, Sec. 2.2.2, 4.1–4.2, 11.2, conclusions; the rest was searched by keyword.
+
+- **No overlap with the paper's claims.** The closed loop appears only as a setup (Sec. 4.1: "teacher forcing ... closed loop phase"); Sec. 11 is the 2021 paper. "Transverse" does not occur in it. Lyapunov analysis there is of the driven and self-normalizing systems.
+- **Worth a citation for setting:** the listening, fitting, predicting language is his own, already via Verzelli 2021.
+- **Self-normalizing reservoirs** (Verzelli et al. 2019, Sci. Rep. 9, 13887) [thesis text]: maximum Lyapunov exponent always zero, so never unstable *in the driven sense*. An interesting foil: it says nothing about the closed loop. Background.
+- **Input-to-state representation** (Verzelli et al., IEEE TNNLS 33, 4598) [thesis conclusions; arXiv abstract]: rank of the controllability matrix decides the encoding, with cyclic reservoirs richest. Connection to Oishi et al. (restricting controllability helps the closed loop) and Saqib & Padoan (controllability makes transverse modes assignable): **maximal controllability helps encoding yet frees the transverse modes**. That is my reading, and it would be a pleasant remark in the Discussion, with those citations.
+- **Forward citations:** OpenAlex lists 34 for Verzelli 2021, 26 for the 2019 paper and 1 for TNNLS. Filtered by title and abstract for closed loop, transverse, stability, bias or symmetry, they add Ahmed et al. 2025 and Suetani & Parlitz 2026 and nothing that undercuts the paper. The thesis itself is not indexed there, so **its forward citations could not be traced**. Citing papers of Herteux & Räth (48) and Platt 2022 (58) were screened the same way, titles and abstracts only. Hurley & Shaheen 2026 (AIP Adv. 16, 085211) [abstract] attribute Lorenz valid-time differences to first-step error and regularization, which bears on the paper's training-error correlation on Lorenz: **supports** that on Lorenz training error matters.
+
+### A5. What to cite and where (paper not edited)
+
+| Place | Add | Why |
+|---|---|---|
+| Sec. on 19 systems, at "Adding a constant back ..." | Herteux & Räth 2020; Platt et al. 2022 | Credit; state that the benefit to forecasts is known and that the measurement on lambda_perp is what is new |
+| Same, at the centering sentence | Platt et al. 2022 | Per-coordinate centering is reported as harmful |
+| Same, after "not tested directly" | Platt 2022 Fig. 8; Barbosa 2021 | Gain and saturation as candidate mechanism; caveat on saturation |
+| At "we cannot explain" | Platt 2022; Hurley et al. 2024 | Reported system dependence |
+| Synchronization section, the ESP sentence | Hart 2024 (Thm 2.8), Ahmed et al. 2025 | A2 |
+| Intro "What is known" | Platt 2022 or Herteux & Räth, one clause | Known that design choices decide the free run |
+| Discussion, optional | Verzelli TNNLS; Oishi; Saqib | Controllability trade-off, marked as an interpretation |
+| Sec. "negative lambda_perp not enough" | O'Hagan et al. 2025 alongside Hart 2024 | Untrained attractors |
+
+Also recorded for the Wikner citation in "The fit leaves the transverse modes free": Parts 2 and 3 of this file give its Jacobian-only failure. References verified here: 10.1063/5.0028993, 10.1016/j.neunet.2022.06.025, 10.1063/5.0055699, 10.1103/PhysRevE.104.045307, 10.1088/2632-072X/ad5e55, 10.1063/5.0283285, 10.1098/rspa.2025.0550, 10.1063/5.0318318, 10.1109/TNNLS.2021.3059389, 10.1038/s41598-019-50158-4.
+
+**Not done:** the original Kocarev & Parlitz; Manjunath & Jaeger; Grigoryeva, Hamzi et al. 2024 "cold starting"; Euler State Networks; the rest of the citing lists beyond titles and abstracts; a dedicated search on benchmark predictability across chaotic systems.
+
+---
+
 ## 0. Main findings
 
 **Two preprints from this month sit directly on the paper's question:**
