@@ -7,6 +7,7 @@
    zero exponents vs the largest CLE, in transversely stable runs.
 3. fig_predictors: median valid time vs training error, largest CLE and lambda_perp.
 4. fig_gap: lambda_perp vs the largest CLE.
+5. fig_opening: two reservoirs alike in training, opposite in free run (needs no results).
 """
 
 import argparse
@@ -59,6 +60,47 @@ def scatter_by_gamma(ax, x, y, gamma):
     for g, c in GAMMA_COLORS.items():
         m = gamma == g
         ax.scatter(x[m], y[m], s=7, color=c, lw=0.2, edgecolor="white", label=f"γ = {g:g}")
+
+
+def fig_opening(out):
+    # two runs of the Rossler scan with the same hyperparameters, chosen to match in
+    # training error and largest CLE, with opposite lambda_perp
+    from reservoir_sync.closed_loop import run_autonomous
+    from reservoir_sync.driven import drive, settle_source
+    from reservoir_sync.readout import fit_readout
+    from reservoir_sync.reservoirs import random_reservoir
+    from reservoir_sync.sources import SOURCES
+
+    source = SOURCES["rossler"]()
+    dt, n_wash, n_train, n_pred = 0.01, 2000, 10000, 30000
+    fig, axes = plt.subplots(2, 2, figsize=(6.5, 3.6), constrained_layout=True,
+                             width_ratios=[2.4, 1], sharex="col")
+    runs = [(1, GAMMA_COLORS[1.0], "(a) λ⊥ = −1.00: the free run follows the source"),
+            (21, GAMMA_COLORS[5.0], "(b) λ⊥ = +0.25: the free run leaves it")]
+    for (seed, color, title), (a, b) in zip(runs, axes):
+        res = random_reservoir(200, source.dim, "tanh", 0.5, 0.05, 0.5, 5.0, None, seed)
+        s0 = settle_source(source, dt, 50.0, seed=seed)
+        full = drive(source, res, s0, np.zeros(res.n), dt, n_wash + n_train + n_pred)
+        train = full[n_wash : n_wash + n_train + 1]
+        N = fit_readout(train.R, train.S, 1e-6)
+        out_free = run_autonomous(res, N, train.R[-1], dt, n_pred) @ N
+        truth = full.S[n_wash + n_train :]
+        t = np.arange(len(out_free)) * dt
+        m = t <= 100
+        a.plot(t[m], truth[: len(t)][m, 0], color=MUTED, lw=2.4, label="source")
+        a.plot(t[m], out_free[m, 0], color=color, lw=1.0, label="free run")
+        a.set_ylabel("$s_1$")
+        a.set_ylim(-11, 18)
+        a.set_title(title, loc="left", fontsize=8)
+        a.legend(frameon=False, ncol=2, loc="upper left")
+        b.plot(truth[:, 0], truth[:, 1], color=MUTED, lw=0.5)
+        b.plot(out_free[:, 0], out_free[:, 1], color=color, lw=0.5)
+        b.set_ylabel("$s_2$")
+        for ax in (a, b):
+            style(ax)
+    axes[1, 0].set_xlabel("time since the loop was closed")
+    axes[1, 1].set_xlabel("$s_1$")
+    fig.savefig(out / "fig_opening.pdf")
 
 
 def fig_counterexample(out):
@@ -165,6 +207,7 @@ def main():
     a = p.parse_args()
     a.out.mkdir(parents=True, exist_ok=True)
     fig_counterexample(a.out)
+    fig_opening(a.out)
     data = {name: load(a.results / f) for name, f in SCANS.items()}
     fig_tangent_survival(data, a.out)
     fig_predictors(data, a.out)
