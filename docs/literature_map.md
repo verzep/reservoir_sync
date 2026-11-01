@@ -18,16 +18,18 @@ They answer the brief's question about observers: **a synchronized response with
 
 **Claim (i) as implemented in this repo is already published.** `readout.feedback_gram` (ridge + mu sum_t ||N^T B_t||^2, with B_t = D_s f(r_t, s_t)) is the continuous-time form of Wikner et al.'s Jacobian plus Tikhonov regularization, eq. (10) there.
 
+**Hara & Kokubu 2026 is now read in full (Sec. 3a).** It takes nothing from the planned list. It is discrete-time, C^1, with strong fiber contraction, and its neighbourhood hypothesis (H) assumes the stability this paper studies. It does overlap the hyperbolic-set result in the theory notes.
+
 **Claim (d) has classical roots.** Its integral is the directional form of the derivative construction in Stark 1999, and Rulkov & Afraimovich 2003 say in words why unstable directions should be harmless. The theorem itself was not found.
 
 ## 1. Classification
 
 | Claim | Class | Decisive passage |
 |---|---|---|
-| (a) Conjugacy on the manifold; decoder differential maps velocities | **KNOWN** [text] | A. Hart 2024 Sec. 5; Bizyaeva Prop. III.1 B; Lu et al. 2018 II C; Stark 1999 Sec. 1.1 for the driven graph |
+| (a) Conjugacy on the manifold; decoder differential maps velocities | **KNOWN** [text] | A. Hart 2024 Sec. 5; Bizyaeva Prop. III.1 B; Hara & Kokubu 2026 Thm 2.24 (discrete); Lu et al. 2018 II C; Stark 1999 Sec. 1.1 for the driven graph |
 | (b) g_hat - g = e_dot + N^T d and its reading | **APPARENTLY NEW**, elementary | Absent from Bizyaeva Prop. IV.1, Janny Prop. 1, Saqib & Padoan [text] |
-| (c) ker N^T transverse, Q A_c, block-triangular | **PARTLY KNOWN**: linear constant-coefficient case known [text]; nonlinear time-varying form apparently new | Saqib & Padoan Remark 1; Oishi Thm 1 |
-| (d) Exponents survive without a differentiable map | **PARTLY KNOWN**: ingredients and heuristic known [text]; the theorem apparently new. Hunt–Ott–Yorke body unread | Stark 1999 Sec. 4.1; Rulkov & Afraimovich 2003 Sec. V |
+| (c) ker N^T transverse, Q A_c, block-triangular | **PARTLY KNOWN**: linear constant-coefficient case known [text]; ideal-decoder special case known [text]; nonlinear time-varying form for the actual readout apparently new | Saqib & Padoan Remark 1; Oishi Thm 1; Hara & Kokubu Thm 2.24 (4) |
+| (d) Exponents survive without a differentiable map | **PARTLY KNOWN**: ingredients and heuristic known [text]; the theorem apparently new. Hara & Kokubu assume C^1, so no overlap [text]. Hunt–Ott–Yorke body unread | Stark 1999 Sec. 4.1; Rulkov & Afraimovich 2003 Sec. V |
 | (e) Transverse differs from conditional; kernel condition | **PARTLY KNOWN**: difference known for LTI [text]; systematic gap and kernel condition apparently new. The draft's "only if" is false (theory notes) | Saqib & Padoan eq. (32); J. D. Hart 2024 II E; Oishi Thm 1 |
 | (f) Exact counterexample | **KNOWN** for linear systems [text]; chaotic version not found | Saqib & Padoan Sec. V-A; Rivkind & Barak 2017 |
 | (g) Transverse exponent predicts failure | **PARTLY KNOWN**: criterion known [text]; three-way comparison apparently new; 513/810 is the draft's own | Lu et al. III; Oishi; Saqib & Padoan Remark 1 |
@@ -40,7 +42,7 @@ They answer the brief's question about observers: **a synchronized response with
 - Lu, Hunt, Ott [text, II C]: with exact post-processing, listening and predicting reservoirs agree, phi(A) is invariant, and its dynamics seen through psi are "equivalent" to those of A. Discrete time, continuous phi.
 - A. G. Hart 2024 [text, Sec. 5]: if the map is an embedding on an open set, the autonomous system "defines a vector field on f(Omega) which is diffeomorphic to the source vector field". This is the draft's statement, in vector-field language.
 - Bizyaeva Prop. III.1 B [text]: global minimizer, exact readout on the GS graph, and closed-loop reproduction are equivalent, for uniformly contracting reservoirs in continuous time.
-- Hara & Kokubu 2024 [text, Thm 4 and Sec. 5.2]: proved only for a "degenerate" reservoir whose update does not depend on r; the view "has not been verified" in general. Hara & Kokubu 2026 [abstract only, see Sec. 6]: "under certain assumptions", semiconjugate in a weak sense or conjugate.
+- Hara & Kokubu 2024 [text, Thm 4 and Sec. 5.2]: proved only for a "degenerate" reservoir whose update does not depend on r; the view "has not been verified" in general. Hara & Kokubu 2026 [text, Sec. 3a]: Thm 2.24 gives the exact conjugacy for general reservoirs in discrete time; Thm 5.1 and 5.4 treat approximate readouts.
 - The draft's no-derivative version for a linear readout adds only that no D phi is needed, and Bizyaeva's proof also uses only trajectories.
 
 **(b)** Bizyaeva Prop. IV.1 [text, including proof]: forecast error at most eps(1 + L_w L_u (e^{L_g s} - 1)/L_g) plus an initialization term, by Gronwall. It uses the Lipschitz constant of the closed loop, with no time-derivative term and no decomposition. Janny Prop. 1 [text] bounds k L2 e^{-lambda h + L1 p}|z_0^y| from initial mismatch only. Saqib & Padoan treat exact readouts. Nothing read states the identity. It takes a few lines, so it has value as a reading rather than as a discovery. The system-identification literature on equation error against simulation error is unread (Narendra & Parthasarathy 1990 [meta]).
@@ -108,6 +110,55 @@ Saqib & Padoan's conclusion explicitly lists as open "the interplay between the 
 
 **Observer thread: closed-loop stability.** Janny et al. 2021 [text]: an output predictor is a contraction plus a generating model g(z) = G(z, psi(z)), and they use "open-loop" for what RC calls closed loop, so searches must use both words. Their Prop. 1 and 2 bound error only, growing exponentially with horizon. Andrieu & Praly 2006 [text, Thm 2.2] covers the driven observer only: continuity and uniform injectivity suffice, which parallels the draft's continuous assumption. **I found no closed-loop stability theorem in the KKL literature read or in one targeted search, except the linear Remark 1 above.** Bernard et al. 2022 survey and Nijmeijer & Mareels 1997 bodies are not read (Sec. 6), and neither decides a classification.
 
+## 3a. Hara & Kokubu 2026 (read in full)
+
+M. Hara, H. Kokubu, SIAM J. Appl. Dyn. Syst. 25(3), 1834–1867 (2026) [text, all 34 pages]. Quoted items below are from the PDF supplied by the user.
+
+**Assumptions, precisely**
+
+| Item | Statement | Where |
+|---|---|---|
+| Time | **Discrete only**: x_{n+1} = f(x_n), r_{n+1} = tau(A r + C phi(x) + b) | Sec. 1, eq. (1.1) |
+| Source | M closed C^1 manifold, f in Diff^1(M), attractor Lambda, ergodic mu, supp mu = Lambda, x_0 generic | (T1), (T4), (*), (**) |
+| Observation | phi: M to R^m a C^1 **embedding**, so effectively full state | Main Thm 5.1 |
+| Reservoir | N > 2d; **strong fiber contraction** ||dF/dr|| < kappa << 1; rank D tau = N; (#) moment matrix invertible (dropped with ridge) | (R1)–(R3) |
+| Smoothness of map | **C^1, by the C^r section theorem**, whose condition kappa ||Df^{-1}|| < 1 is the rate condition. Non-differentiable maps are excluded. Embedding for generic Omega | Thm 2.4, 2.15 |
+| Target for semiconjugacy | f **positively expansive on Lambda** and POTP on Lambda | (T2), (T3) |
+| Target for conjugacy | f **C^1 structurally stable** | (T2'), Thm 5.4 |
+| Ideal decoder | gamma-hat = gamma compose pi, with pi the **normal tubular projection**, so constant on normal fibres | Lemma 2.23, Thm 2.24 |
+| Neighbourhood control | **(H)**: d_C0(U)(gamma-hat, phi^{-1} W) small on a trapping region U of both attractors. **(H')**: same in C^1 for conjugacy. Called an "open problem" for (H') | Thm 5.1, 5.4, Rem. 1.3 |
+| Hyperbolicity | Not assumed directly; enters as POTP and expansiveness, or structural stability. Authors say Anosov maps qualify, and that weaker conditions covering the logistic map and "the Lorenz equations" are future work | Rem. 1.3 |
+
+**Results.** Thm 2.15: generic C^1 embedding for nonlinear reservoirs. Thm 2.24: closed loop on s(M) is C^1 conjugate to f, and s(Lambda) is an attractor of the ideal closed loop. Cor. 3.11: regression output is C^0 close to the ideal one. Thm 4.19 and 5.1: under (H), the trained closed loop is weakly semiconjugate to f on Gamma_W. Thm 5.4: under (H') and (T2'), topologically conjugate.
+
+**Passage-level verdicts**
+
+- **(a) Now firmly KNOWN, for discrete time.** Thm 2.24 (2): "(F-tilde_gamma, s(M)) and (f, M) is C^1 conjugate", by a one-line commutation, as in the draft. Approximate-readout versions (Thm 5.1, 5.4) go beyond the draft's exact case. The continuous-time statement rests on A. Hart and Bizyaeva.
+- **(c) Not taken, but the decoder-fibre idea is there.** Thm 2.24 (4) shows the ideal closed loop contracts toward the manifold because gamma-hat is constant on normal fibres, and the proof is only dist(F(gamma(pi r), r), M) <= kappa |r - pi r|. There is no Q, no ker W, no variational equation, and no treatment of the fibres of the actual readout. **My reading in the draft's language:** gamma-hat is a decoder whose kernel is the normal bundle, so Q is orthogonal and ||Q A|| <= kappa. A trained W has oblique kernel and ||Q|| may be large. That gap is exactly what (c) measures, so HK is the special case that makes (c) look safe. Lu et al.'s remark that stability depends on the extension of psi is the same point.
+- **(d) Not touched.** HK assumes C^1 and never discusses non-differentiable maps, tangent directions, or exponents; "Lyapunov" appears only in a reference title. **Claim (d) needs no change on this account.**
+- **(e) Not touched directly.** No conditional or transverse exponents. It does supply a regime where driven contraction does carry over: kappa << 1 with the ideal decoder. This is compatible with the draft's gap, since neither condition holds for trained W.
+- **(g) Not touched, and in some tension.** No exponents, no failure statistics, no predictor comparison. The tension is below: the Remark on Thm 5.1 says (H) holds with high probability for large N and T, yet the draft finds 513/810 transversely unstable runs on Rössler. Those runs fail any trapping-region hypothesis. The regimes differ (kappa << 1, N and T large; Rössler is also outside their class), so this is not a contradiction, but the paper must say why.
+
+**Two points in HK to raise (my reading, to be checked by a dynamicist before anyone relies on them)**
+
+1. **(H) carries the transverse stability, and Cor. 3.11 does not obviously supply it.** The corollary fixes "a small neighborhood" U of Gamma, then derives closeness on U from closeness on Gamma "because W_T, phi and gamma are continuous". Continuity at fixed W gives a neighbourhood depending on W, while Claim 5.3 needs F-tilde_W(closure U) inside U for a U whose trapping margin is fixed by the ideal system. A sketch of what (H) requires: on a tube of radius rho, sup_U |W - phi gamma-hat| is at least of order ||W restricted to normal directions|| rho, and the margin is of order (1 - kappa) rho, so (H) implies roughly L_x ||W_normal|| < 1 - kappa. That is a **small-gain condition on the readout in normal directions**, which is what the draft's transverse exponent and the N^T B gain measure. So (H) assumes away the failure this paper studies. Regression only controls W on the data.
+2. **(T1) and (T2) together look vacuous as written.** Def. 4.12 takes positive expansiveness on Lambda with j >= 0, and f is a homeomorphism of Lambda by (T1). A homeomorphism of a compact metric space is positively expansive if and only if the space is finite (Richeson & Wiseman 2004 [abstract]). Directly: two points on one local stable manifold of an Anosov map never separate forward. So the sentence "every Anosov diffeomorphism ... satisfies assumptions (T1)–(T4)" does not hold for (T2) as defined; Cor. 4.11 gives two-sided expansiveness only. Natural repair: Rem. 4.18 notes the two-sided shadowing lemma covers the hyperbolic case when G is a homeomorphism, which restricts the closed loop. Thm 5.4 is unaffected. Smaller points: "Lip(pi) becomes arbitrarily small" in Claim 2.25 cannot hold since pi is idempotent, though the conclusion of Thm 2.24 (4) follows without it; and F-tilde_W uses phi^{-1}(W r), which is undefined when W r leaves phi(M).
+
+Neither point is grounds to attack the paper. The theorems stand in their hypotheses and repaired form. The practical consequence is that citing "Hara & Kokubu prove trained reservoirs reproduce f" would overstate it.
+
+**Comparison with `docs/theory_notes.md` Sec. 4 (ba76331)**
+
+| Theory-notes result | Status against HK | What stays distinct |
+|---|---|---|
+| 4.1 Tube theorem (PROVED) | **Partly there.** Claim 5.3 (ii): under C^0 closeness to an exact decoder on U, the closed loop keeps a trapping region. No hyperbolicity is used in that step, as in the tube | Continuous time; actual readout kernel, with contraction of L = QA + Q' rather than kappa << 1 with normal fibres, so kappa near 1 is allowed (checked at kappa near 1); explicit radius O(delta/sigma); no fixed (H)-type gain assumption beyond contraction |
+| 4.1 Upper semicontinuity | **Partly there.** Thm 5.1 gives h with d_0(h, id) < eps, so Gamma_W is near Gamma_gamma | Theory version needs no (T2), (T3) |
+| 4.1 Forecast bound in source coordinates | **New relative to HK**, which has no forecast bound | Compare Bizyaeva Prop. IV.1 |
+| 4.2 Converse Lyapunov | **Not there** as a statement. Same spirit as Claim 5.3 | No regularity of phi; requires only Lipschitz inverse. Standard argument, so small |
+| 4.3 Hyperbolic set, structural stability (SKETCH) | **Conclusion already there** for C^1 maps and diffeos: Thm 5.4 (structural stability, C^1 closeness, conjugacy) and Thm 5.1 (shadowing, C^0, semiconjugacy) | Only the hypotheses differ: no C^1 phi, quotient contraction instead of kappa << 1, flows and hyperbolic sets rather than closed manifolds. Remains a SKETCH. Treat as a remark citing HK and Oishi, not a result |
+| 4.3 Shadowing variant, saddle case (SKETCH) | **Partly there**: POTP tracing is HK's core tool | Dichotomy along the driven orbit and lambda_perp != 0 not assumed negative: not in HK |
+| 4.4 Bubbling, moment bound | **Not there** | Non-uniform case is outside HK entirely |
+| Sec. 3 factorization, chaotic no-go, quotient operator | **Not there** | No transverse operator in HK |
+
 ## 4. Threads
 
 **Generalized synchronization.** Afraimovich et al. 1986; Pecora & Carroll 1990; Rulkov et al. 1995; Abarbanel et al. 1996; Kocarev & Parlitz 1996; Pyragas 1996; Pecora et al. 1997; Boccaletti et al. 2002; Badii et al. 1988; Pecora & Carroll 1996; Davies & Campbell 1996 [all meta]. Stark 1999 [text]; Stark 1997, Josić 1998 [abstract or meta]; Grigoryeva et al. 2021 [text, intro].
@@ -142,12 +193,11 @@ Saqib & Padoan's conclusion explicitly lists as open "the interplay between the 
 **Searched:** OpenAlex citing lists of Verzelli 2021 (all, titles), Lu 2018, J. D. Hart 2024, Hara & Kokubu 2024, Platt 2021 (2023 on, keyword filtered on title and abstract). arXiv API on abstract terms: reservoir with transverse/readout, closed-loop/conditional Lyapunov, transversal/GS, DMD/closed-loop, internal model, spurious/closed-loop, echo state/output feedback/regularization, surrogate/vector field, teacher forcing/chaotic, loop gain, Luenberger/Kazantzis. About fifteen web searches. Most arXiv keyword queries returned little, and the KKL query found preprints that an earlier web search missed, so misses-only verdicts are weak evidence.
 
 **Could not reach [text], and why:**
-- **Hara & Kokubu 2026 (SIADS):** no preprint found on arXiv, Unpaywall or Semantic Scholar; SIAM's page sits behind a Cloudflare bot check, which I did not try to pass, and an automated fetch was refused on those grounds. Abstract and the GMU seminar abstract only. **It could affect (a) and (d): its assumptions decide how far "weak semiconjugacy" reaches.**
 - **Hunt, Ott, Yorke 1997:** APS gave no PDF to a plain request; Hunt's page has no copy. Abstract plus three secondary accounts. **It could affect (d).**
 - **Hara & Kokubu 2025 (Chaos), Reinhart & Steil 2012:** behind a bot check and a paywall. Neither decides a classification; Wikner settles (i).
 - **Bernard et al. 2022, Nijmeijer & Mareels 1997:** downloads returned HTML. Neither decides a classification.
 
-If the user saves the SIAM and APS PDFs (their browser shows access to publisher content), both can be read in minutes.
+If the user saves the APS PDF, it can be read in minutes. Hara & Kokubu 2026 was read from the PDF the user supplied.
 
 **Identifiers**
 - New: arXiv:2610.04343, 2610.08987, 2604.05967, 2607.17909, 2602.11069, 2606.24303, 2211.09515 (A. Hart), 1802.06364 (Fernandez & Quas), 2412.20649 (review), 1409.6358 (Proctor).
@@ -157,7 +207,7 @@ If the user saves the SIAM and APS PDFs (their browser shows access to publisher
 - Hara & Kokubu 10.1007/s10884-022-10159-w, 10.1137/24M1714617, 10.1063/5.0273628; Grigoryeva 10.1088/1361-6544/ace492, 10.1103/PhysRevE.103.062204.
 - Andrieu & Praly 10.1137/040617066; Kazantzis & Kravaris 10.1016/S0167-6911(98)00017-6; Janny 10.1109/CDC45484.2021.9683277; Bernard 10.1016/j.arcontrol.2021.11.002; Nijmeijer & Mareels 10.1109/81.633877.
 - Isidori & Byrnes 10.1109/9.45168; Byrnes & Isidori 10.1109/TAC.2003.817926; Francis & Wonham 10.1016/0005-1098(76)90006-6; Astolfi & Ortega 10.1109/TAC.2003.809820; Zames 10.1109/TAC.1966.1098316.
-- Tu 10.3934/jcd.2014.1.391; Proctor 10.1137/15M1013857; Gulina & Mauroy 10.1063/5.0026380; Hunt, Ott, Yorke 10.1103/PhysRevE.55.4029; Stark 10.1016/S0167-2789(97)00167-X, 10.1017/S0143385799126555; Josić 10.1103/PhysRevLett.80.3053; Rulkov & Afraimovich 10.1103/PhysRevE.67.066218.
+- Tu 10.3934/jcd.2014.1.391; Proctor 10.1137/15M1013857; Gulina & Mauroy 10.1063/5.0026380; Hunt, Ott, Yorke 10.1103/PhysRevE.55.4029; Stark 10.1016/S0167-2789(97)00167-X, 10.1017/S0143385799126555; Josić 10.1103/PhysRevLett.80.3053; Rulkov & Afraimovich 10.1103/PhysRevE.67.066218; Richeson & Wiseman 10.1155/S0161171204312184.
 - Other papers named in Sec. 4 without a DOI here were resolved through Crossref or arXiv in this work, except Pachy 2024 and Galimberti 2026, cited only as reported by Bizyaeva et al.
 
 ## 7. Verdict
@@ -167,10 +217,12 @@ If the user saves the SIAM and APS PDFs (their browser shows access to publisher
 **Defensible as new, strongest first:**
 1. **The measured transverse/conditional gap on trained chaotic reservoirs**, against J. D. Hart 2024's expectation, and the three-way predictor comparison. Neither preprint has any Lyapunov or chaotic numerics.
 2. **The transverse operator Q A_c on ker N^T for nonlinear reservoirs along a chaotic orbit.** This extends Saqib & Padoan Remark 1 and answers Lu et al.'s question. Theory notes' repairs apply (tangent cones, E not TM).
-3. **Survival of unstable and neutral exponents below the rate condition.** New as a theorem, subject to Hunt–Ott–Yorke and Hara & Kokubu 2026, and to be framed as a directional refinement of Stark.
+3. **Survival of unstable and neutral exponents below the rate condition.** New as a theorem, subject to the Hunt–Ott–Yorke body, and to be framed as a directional refinement of Stark.
 4. **A chaotic exact counterexample** (theory notes), since the published ones are linear.
 5. **Sufficient conditions for coincidence** (kernel invariance, dual to Oishi's Q B = 0).
 6. **The error identity (b) and R_dot R^+**, as short organizing results.
+
+**What Hara & Kokubu 2026 removes:** nothing in the list above. Theory notes 4.3 (hyperbolic set plus structural stability) is not new as a conclusion and stays a remark citing HK. The tube theorem stays, with HK's trapping-region step cited as the discrete strong-contraction antecedent, and its novelty stated as the actual-readout contraction, the explicit radius and the source-coordinate forecast bound. The draft's sentence on "neighborhood control of the learned readout" should cite this paper explicitly, and should say that (H) is the hypothesis this work examines.
 
 **Pitch.** Before October the pitch was "state reconstruction determines the vector field, and stable synchronization does not protect the closed loop". That no longer stands as new. The better pitch: *closing the loop is known to be an observer feedback, with transverse modes that training leaves free; for chaotic sources, and without a smooth map, here is what determines them, why driven diagnostics mislead, and how often it fails.* Open by citing the KKL connection rather than presenting synchronization as the framing.
 
