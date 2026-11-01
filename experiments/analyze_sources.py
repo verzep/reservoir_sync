@@ -91,6 +91,11 @@ def source_row(name, recs, cal):
     for cls in ("fixed_point", "periodic", "chaotic", "diverged"):
         row[f"end_{cls}"] = ends[cls] / len(recs)
     row["end_on_source"] = on / len(recs)
+    # the rate condition for a differentiable synchronization map, CLE < lambda_min
+    smooth = np.array([bool(r["smooth_sync_condition"]) for r in recs])
+    row["smooth"] = float(smooth.mean())
+    row["unstable_smooth"] = float(np.mean(perp[smooth & known] >= UNSTABLE)) if (smooth & known).any() else np.nan
+    row["unstable_rough"] = float(np.mean(perp[~smooth & known] >= UNSTABLE)) if (~smooth & known).any() else np.nan
     return row
 
 
@@ -269,6 +274,44 @@ def figure(path, per_arm):
     plt.close(fig)
 
 
+def smooth_table(per_arm):
+    print("\n=== Rate condition CLE < lambda_min: unstable fraction with and without it (runs pooled per arm)")
+    for arm, rows in per_arm.items():
+        n = np.array([r["runs"] for r in rows], float)
+        f = np.array([r["smooth"] for r in rows])
+        us = np.array([0.0 if np.isnan(r["unstable_smooth"]) else r["unstable_smooth"] for r in rows])
+        ur = np.array([0.0 if np.isnan(r["unstable_rough"]) else r["unstable_rough"] for r in rows])
+        ns, nr = (n * f).sum(), (n * (1 - f)).sum()
+        print(f"  {arm:10s} holds in {ns:5.0f} runs, unstable {(n * f * us).sum() / max(ns, 1):.2f};"
+              f" fails in {nr:5.0f} runs, unstable {(n * (1 - f) * ur).sum() / max(nr, 1):.2f}")
+
+
+def paired_arms(d, a, b, calibration):
+    """Same reservoir and source in two arms: change in the unstable fraction per source."""
+    def key(r):
+        c = r["config"]
+        return (c["spectral_radius"], c["input_scale"], c["gamma"], c["seed"])
+
+    print(f"\n=== Paired {a} -> {b}")
+    out = []
+    for name in calibration:
+        A = {key(r): r["lambda_perp_driven"] for r in load([d / f"scan_{a}.jsonl"], name)}
+        B = {key(r): r["lambda_perp_driven"] for r in load([d / f"scan_{b}.jsonl"], name)}
+        both = [k for k in A if k in B and A[k] is not None and B[k] is not None]
+        if not both:
+            continue
+        ua, ub = np.array([A[k] >= UNSTABLE for k in both]), np.array([B[k] >= UNSTABLE for k in both])
+        out.append({"source": name, "pairs": len(both), "from": float(ua.mean()), "to": float(ub.mean()),
+                    "dperp": float(np.median([B[k] - A[k] for k in both]))})
+        print(f"  {name:16s} {len(both):4d}  {ua.mean():.2f} -> {ub.mean():.2f}   median change in lambda_perp {out[-1]['dperp']:+.2f}")
+    if out:
+        diff = np.array([r["to"] - r["from"] for r in out])
+        boot = np.random.default_rng(0).choice(diff, (N_BOOT, len(diff))).mean(1)
+        print(f"  mean change {diff.mean():+.3f} [{np.quantile(boot, .025):+.3f}, {np.quantile(boot, .975):+.3f}] over sources;"
+              f" sources that fell: {np.sum(diff < 0)}/{len(diff)}")
+    write_csv(d / f"paired_{a}_{b}.csv", out)
+
+
 def controls(d):
     """Lorenz and Rossler across amplitude, offset and training window; interval over reservoir seeds."""
     print("\n=== Controls: scan_base, scan_train, ctl_* and the arms, Lorenz and Rossler")
@@ -337,6 +380,9 @@ def main():
         for col in ("gamma_over_l1", "gamma_period"):
             print(f"pooled over arms, {col}: rho %+.2f [%+.2f, %+.2f]" % cell_law(pooled, col))
     write_csv(a.dir / "laws.csv", all_laws)
+    smooth_table(per_arm)
+    if (a.dir / "scan_lambdaoff.jsonl").exists() and (a.dir / "scan_lambda.jsonl").exists():
+        paired_arms(a.dir, "lambda", "lambdaoff", calibration)
     figure(a.dir / "source_laws.png", per_arm)
 
 
