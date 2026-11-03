@@ -196,6 +196,8 @@ if __name__ == "__main__":
         print(f" E={E} amp={amp}")
         fam = Fam(E=E, amp=amp)
         spectrum_check(fam)
+    print(" E=1 amp=0.5 D=6 (E > 0 with stable synchronization, Sec. 4)")
+    spectrum_check(Fam(E=1.0, amp=0.5, D=6.0), T=400.0)
     print("== Gains")
     for E, amp in [(-3.0, 0.5), (-1.0, 0.5)]:
         print(f" E={E} amp={amp}")

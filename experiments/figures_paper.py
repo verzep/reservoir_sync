@@ -269,16 +269,27 @@ def fig_counterexample(out):
     fig.savefig(out / "fig_counterexample.pdf")
 
 
+def nearest_pair(r):
+    """Closed-loop exponents nearest to the source's lambda_1 and, among the others, to its zero exponent.
+
+    Picked in turn so that the two are distinct exponents (with a small lambda_1, as for Rossler, the same
+    exponent could otherwise be the nearest to both)."""
+    lam = list(r["lyap_closed_driven"])
+    i = int(np.argmin([abs(c - r["lyap_source"][0]) for c in lam]))
+    first = lam.pop(i)
+    return first, min(lam, key=lambda c: abs(c - r["lyap_source"][1]))
+
+
 def fig_tangent_survival(data, out):
     fig, axes = plt.subplots(1, 2, figsize=(6.5, 2.5), constrained_layout=True)
     for ax, (name, recs) in zip(axes, data.items()):
         stable = [r for r in recs if r["lambda_perp_driven"] < STABLE]
         cle = col(stable, lambda r: r["lyap_cle"][0])
         src = np.median([r["lyap_source"] for r in recs], axis=0)
-        near = lambda r, s: min(r["lyap_closed_driven"], key=lambda c: abs(c - s))
-        ax.scatter(cle, col(stable, lambda r: near(r, r["lyap_source"][0])), s=6, lw=0,
+        pairs = [nearest_pair(r) for r in stable]
+        ax.scatter(cle, np.array([p[0] for p in pairs]), s=6, lw=0,
                    color=GAMMA_COLORS[1.0], label="nearest to λ₁")
-        ax.scatter(cle, col(stable, lambda r: near(r, r["lyap_source"][1])), s=6, lw=0,
+        ax.scatter(cle, np.array([p[1] for p in pairs]), s=6, lw=0,
                    color=GAMMA_COLORS[5.0], label="nearest to 0")
         ax.axhline(src[0], color=MUTED, lw=0.8, ls="--")
         ax.axhline(0, color=MUTED, lw=0.8, ls="--")
