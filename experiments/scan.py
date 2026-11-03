@@ -7,6 +7,9 @@
 Every field of reservoir_sync.experiment.Config takes one or more values; the
 grid is their product. Runs already in --out (same config) are skipped, so an
 interrupted scan can be restarted with the same command.
+
+--per-source takes a JSON file {source: {field: value}} of overrides applied to
+each config of that source after the product (integration windows, dt, ...).
 """
 
 import os
@@ -39,10 +42,14 @@ def parse_grid(argv=None):
         parser.add_argument(f"--{f.name.replace('_', '-')}", type=typ, nargs="+", default=[f.default])
     parser.add_argument("--workers", type=int, default=os.cpu_count())
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--per-source", type=Path, default=None)
     args = vars(parser.parse_args(argv))
-    workers, out = args.pop("workers"), args.pop("out")
+    workers, out, per_source = args.pop("workers"), args.pop("out"), args.pop("per_source")
     names = list(args)
     grid = [Config(**dict(zip(names, values))) for values in itertools.product(*args.values())]
+    if per_source is not None:
+        table = json.loads(per_source.read_text())
+        grid = [dataclasses.replace(c, **table.get(c.source, {})) for c in grid]
     return grid, workers, out
 
 
