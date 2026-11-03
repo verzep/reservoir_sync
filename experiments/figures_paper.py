@@ -1,22 +1,32 @@
 """Figures of the paper, as vector PDFs.
 
-    python experiments/figures_paper.py --results results/night_2026-10-20 --out figures
+    python experiments/figures_paper.py --results results/night_2026-10-20 \
+        --source-scan results/source_scan --out figures
+
+Without --results / --source-scan only the figures that need no results are made.
+fig_failure_end_state.pdf comes from figure_night.py; experiments/paper_figures.sh
+makes all of them, and REPRODUCE.md maps them to the paper.
 
 1. fig_counterexample: the 2-d counterexample (needs no results).
 2. fig_tangent_survival: closed-loop exponents nearest the source's positive and
    zero exponents vs the largest CLE, in transversely stable runs.
 3. fig_predictors: median valid time vs training error, largest CLE and lambda_perp.
 4. fig_gap: lambda_perp vs the largest CLE.
-5. fig_opening: two reservoirs alike in training, opposite in free run (needs no results).
+5. fig_opening: two reservoirs alike in training, opposite in free run (needs no results;
+   recomputes lambda_perp over 2000 time units, a few minutes).
 6. fig_overview: schematic of training and closing the loop (needs no results).
 7. fig_sources: the 19-system scan (needs --source-scan).
 8. fig_family: the exact chaotic family, lambda_perp against the conditional exponents (needs no results).
 9. fig_bubbling: bursts at a negative lambda_perp in the same family (needs no results).
 """
 
+import os
+
+for var in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"):
+    os.environ.setdefault(var, "1")  # before numpy: same BLAS threading as the scans
+
 import argparse
 import csv
-import json
 from pathlib import Path
 
 import matplotlib
@@ -27,34 +37,17 @@ import numpy as np
 from scipy.linalg import expm
 from scipy.stats import spearmanr
 
-GAMMA_COLORS = {1.0: "#2a78d6", 5.0: "#eb6834", 20.0: "#1baf7a"}
-INK, MUTED, GRID = "#222220", "#6b6b66", "#e4e3de"
+from reservoir_sync.plotting import GAMMA_COLORS, GRID, INK, MUTED, col, style, use_paper_style
+from reservoir_sync.plotting import load as load_records
+
 SCANS = {"Lorenz": "lorenz_long.jsonl", "Rössler": "rossler_long.jsonl"}
 STABLE = -0.05
 
-plt.rcParams.update({
-    "font.size": 8, "axes.labelsize": 8, "axes.titlesize": 9, "legend.fontsize": 7.5,
-    "pdf.fonttype": 42, "axes.labelcolor": INK, "text.color": INK,
-})
-
-
-def style(ax):
-    for s in ("top", "right"):
-        ax.spines[s].set_visible(False)
-    for s in ("left", "bottom"):
-        ax.spines[s].set_color(MUTED)
-    ax.tick_params(colors=MUTED, labelsize=7)
-    ax.grid(True, color=GRID, lw=0.6)
-    ax.set_axisbelow(True)
+use_paper_style()
 
 
 def load(path):
-    recs = [json.loads(l) for l in Path(path).read_text().splitlines()]
-    return [r for r in recs if "error" not in r and r["lambda_perp_driven"] is not None]
-
-
-def col(recs, f):
-    return np.array([f(r) for r in recs], dtype=float)
+    return load_records(path, keep=lambda r: r["lambda_perp_driven"] is not None)
 
 
 def within_gamma_rho(x, y, gamma):
@@ -170,9 +163,21 @@ def fig_overview(out):
     fig.savefig(out / "fig_overview.pdf")
 
 
-def fig_opening(out):
+def transverse_exponent(source, res, N, s_sync, r_sync, dt, t_lyap, k=10):
+    """lambda_perp along the driven trajectory from the synchronized state, as in
+    reservoir_sync.experiment.run (field lambda_perp_driven)."""
+    from reservoir_sync.lyapunov import closed_loop_exponents_driven, extra_exponents, source_exponents
+
+    n = int(round(t_lyap / dt))
+    lam_src = source_exponents(source, s_sync, dt, n)
+    lam_cl = closed_loop_exponents_driven(source, res, N, s_sync, r_sync, dt, n, k)
+    return float(extra_exponents(lam_cl, lam_src)[0])
+
+
+def fig_opening(out, t_lyap=2000.0):
     # two runs of the Rossler scan with the same hyperparameters, chosen to match in
-    # training error and largest CLE, with opposite lambda_perp
+    # training error and largest CLE, with opposite lambda_perp; lambda_perp is
+    # recomputed here over t_lyap, the exponent window of that scan (Sec. 5)
     from reservoir_sync.closed_loop import run_autonomous
     from reservoir_sync.driven import drive, settle_source
     from reservoir_sync.readout import fit_readout
@@ -183,14 +188,17 @@ def fig_opening(out):
     dt, n_wash, n_train, n_pred = 0.01, 2000, 10000, 30000
     fig, axes = plt.subplots(2, 2, figsize=(6.5, 3.6), constrained_layout=True,
                              width_ratios=[2.4, 1], sharex="col")
-    runs = [(1, GAMMA_COLORS[1.0], "(a) λ⊥ = −1.00: the free run follows the source"),
-            (21, GAMMA_COLORS[5.0], "(b) λ⊥ = +0.25: the free run leaves it")]
+    runs = [(1, GAMMA_COLORS[1.0], "(a) λ⊥ = {}: the free run follows the source"),
+            (21, GAMMA_COLORS[5.0], "(b) λ⊥ = {}: the free run leaves it")]
     for (seed, color, title), (a, b) in zip(runs, axes):
         res = random_reservoir(200, source.dim, "tanh", 0.5, 0.05, 0.5, 5.0, None, seed)
         s0 = settle_source(source, dt, 50.0, seed=seed)
         full = drive(source, res, s0, np.zeros(res.n), dt, n_wash + n_train + n_pred)
         train = full[n_wash : n_wash + n_train + 1]
         N = fit_readout(train.R, train.S, 1e-6)
+        perp = transverse_exponent(source, res, N, train.S[-1], train.R[-1], dt, t_lyap)
+        title = title.format(f"{perp:+.2f}".replace("-", "−"))
+        print(f"fig_opening seed {seed}: lambda_perp = {perp:+.3f} (paper: seed 1 -1.00, seed 21 +0.25)")
         out_free = run_autonomous(res, N, train.R[-1], dt, n_pred) @ N
         truth = full.S[n_wash + n_train :]
         t = np.arange(len(out_free)) * dt
@@ -528,29 +536,34 @@ def fig_bubbling(out, workers=8):
                   f"finite {np.isfinite(chi).mean():.2f}")
 
 
+NO_RESULTS = ("counterexample", "overview", "opening", "family", "bubbling")
+LONG_SCANS = ("tangent_survival", "predictors", "gap")  # need --results
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--results", type=Path)
+    p.add_argument("--results", type=Path, help="directory with lorenz_long.jsonl and rossler_long.jsonl")
     p.add_argument("--out", type=Path, required=True)
-    p.add_argument("--source-scan", type=Path, help="results/source_scan, for fig_sources")
-    p.add_argument("--only", nargs="*", help="make only these figures, e.g. overview family bubbling")
+    p.add_argument("--source-scan", type=Path,
+                   help="directory with sources_lambda.csv and sources_lambdaoff.csv, for fig_sources")
+    p.add_argument("--only", nargs="*", choices=NO_RESULTS + LONG_SCANS + ("sources",),
+                   help="make only these figures, e.g. overview family bubbling")
     a = p.parse_args()
+    names = a.only or list(NO_RESULTS) + (list(LONG_SCANS) if a.results else []) + (["sources"] if a.source_scan else [])
+    if any(n in LONG_SCANS for n in names) and a.results is None:
+        p.error("these figures need --results: " + " ".join(n for n in names if n in LONG_SCANS))
+    if "sources" in names and a.source_scan is None:
+        p.error("fig_sources needs --source-scan")
     a.out.mkdir(parents=True, exist_ok=True)
-    if a.only:
-        for name in a.only:
-            globals()[f"fig_{name}"](a.out)
-        return
-    fig_counterexample(a.out)
-    fig_overview(a.out)
-    fig_opening(a.out)
-    fig_family(a.out)
-    fig_bubbling(a.out)
-    data = {name: load(a.results / f) for name, f in SCANS.items()}
-    fig_tangent_survival(data, a.out)
-    fig_predictors(data, a.out)
-    fig_gap(data, a.out)
-    if a.source_scan:
-        fig_sources(a.source_scan, a.out)
+    data = {name: load(a.results / f) for name, f in SCANS.items()} if a.results else None
+    for name in names:
+        fig = globals()[f"fig_{name}"]
+        if name in LONG_SCANS:
+            fig(data, a.out)
+        elif name == "sources":
+            fig(a.source_scan, a.out)
+        else:
+            fig(a.out)
     print(sorted(x.name for x in a.out.glob("*.pdf")))
 
 

@@ -1,9 +1,10 @@
-"""Every run records the code version, library versions and BLAS thread settings."""
+"""Provenance of runs, and the opening figure's lambda_perp computed as in run()."""
 
 import json
 import platform
 
 import numpy as np
+import pytest
 import scipy
 
 from reservoir_sync.experiment import THREAD_VARS, Config, provenance, run
@@ -24,3 +25,32 @@ def test_run_records_provenance():
     out = run(Config(n=20, t_washout=2, t_train=10, t_test=4, t_lyap=2, k=2, n_starts=0))
     assert out["provenance"]["numpy"] == np.__version__
     json.dumps(out)  # stays a JSON line
+
+
+def test_opening_transverse_exponent_matches_run():
+    """figures_paper.transverse_exponent (the opening figure's titles) is run()'s lambda_perp_driven."""
+    import importlib.util
+    from pathlib import Path
+
+    from reservoir_sync.driven import drive, settle_source
+    from reservoir_sync.readout import fit_readout
+    from reservoir_sync.reservoirs import random_reservoir
+    from reservoir_sync.sources import make_source
+
+    path = Path(__file__).parents[1] / "experiments" / "figures_paper.py"
+    spec = importlib.util.spec_from_file_location("figures_paper", path)
+    figures_paper = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(figures_paper)
+
+    cfg = Config(source="rossler", n=20, t_washout=2, t_train=10, t_test=4, t_lyap=3, k=4, n_starts=0, seed=3)
+    out = run(cfg)
+    source = make_source(cfg.source)
+    res = random_reservoir(cfg.n, source.dim, cfg.kind, cfg.spectral_radius, cfg.input_scale,
+                           cfg.bias_scale, cfg.gamma, cfg.density, cfg.seed)
+    s0 = settle_source(source, cfg.dt, cfg.t_settle, seed=cfg.seed)
+    n_wash, n_train = 200, 1000
+    full = drive(source, res, s0, np.zeros(res.n), cfg.dt, n_wash + n_train + 400)
+    train = full[n_wash : n_wash + n_train + 1]
+    N = fit_readout(train.R, train.S, cfg.beta)
+    perp = figures_paper.transverse_exponent(source, res, N, train.S[-1], train.R[-1], cfg.dt, cfg.t_lyap, cfg.k)
+    assert perp == pytest.approx(out["lambda_perp_driven"], abs=1e-9)
