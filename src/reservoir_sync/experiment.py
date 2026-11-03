@@ -11,10 +11,16 @@ For one source and one random reservoir:
    (two reservoirs from different initial states, same drive).
 """
 
+import functools
+import os
+import platform
+import subprocess
 import time
 from dataclasses import asdict, dataclass
+from pathlib import Path
 
 import numpy as np
+import scipy
 
 from .closed_loop import (
     field_errors,
@@ -76,6 +82,30 @@ class Config:
     t_settle: float = 50.0  # transient of the source before the washout
 
 
+THREAD_VARS = ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS")
+
+
+@functools.cache
+def _git_describe():
+    try:
+        out = subprocess.run(["git", "describe", "--always", "--dirty"], cwd=Path(__file__).parent,
+                             capture_output=True, text=True, timeout=10)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return (out.stdout.strip() or None) if out.returncode == 0 else None
+
+
+def provenance() -> dict:
+    """Code version, library versions and BLAS thread settings, stored with every run."""
+    return {
+        "git": _git_describe(),
+        "python": platform.python_version(),
+        "numpy": np.__version__,
+        "scipy": scipy.__version__,
+        "threads": {v: os.environ.get(v) for v in THREAD_VARS},
+    }
+
+
 def _steps(t, dt):
     return int(round(t / dt))
 
@@ -105,7 +135,7 @@ def run(cfg: Config) -> dict:
         P = cfg.transverse_penalty * jacobian_gram(res, train.R, train.S)
         penalty = P if penalty is None else penalty + P
     N = fit_readout(train.R, train.S, cfg.beta, penalty=penalty)
-    out = {"config": asdict(cfg), "dt_used": dt}
+    out = {"config": asdict(cfg), "provenance": provenance(), "dt_used": dt}
     out["N_norm"] = float(np.linalg.norm(N))
     out["feedback_gain_train"] = feedback_gain_rms(res, N, train.R, train.S)
     out["readout_jacobian_train"] = readout_jacobian_rms(res, N, train.R, train.S)
