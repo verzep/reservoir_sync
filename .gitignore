@@ -17,3 +17,6 @@ results/
 *.npz
 *.h5
 *.pkl
+
+# Figure output (experiments/paper_figures.sh, figures_paper.py)
+/figures/
