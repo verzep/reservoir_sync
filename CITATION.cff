@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use this code, please cite the paper below."
+title: "reservoir_sync: code for 'Learn to Synchronize, Fail to Predict'"
+type: software
+authors:
+  - family-names: Verzelli
+    given-names: Pietro
+repository-code: "https://github.com/verzep/reservoir_sync"
+license: MIT
+preferred-citation:
+  type: article
+  title: "Learn to Synchronize, Fail to Predict: What Training Cannot See in Surrogates of Chaotic Systems"
+  authors:
+    - family-names: Verzelli
+      given-names: Pietro
+  year: 2026
+  # doi: (blank until the paper has one; add it here)
+  repository-code: "https://github.com/verzep/reservoir_sync"

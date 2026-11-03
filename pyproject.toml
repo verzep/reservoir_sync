@@ -3,6 +3,8 @@ name = "reservoir-sync"
 version = "0.1.0"
 description = "Closed-loop reservoir computing: state reconstruction, generalized synchronization and autonomous dynamics"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
     { name = "verzep", email = "pietro.verzelli@gmail.com" }
 ]
