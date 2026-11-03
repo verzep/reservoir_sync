@@ -6,6 +6,17 @@ Expects <dir>/calibration.json and <dir>/scan_<arm>.jsonl. Prints, per arm, a
 per-source table and the candidate laws, and writes <dir>/sources_<arm>.csv,
 <dir>/laws.csv and <dir>/source_laws.png.
 
+The paper's 19-system figure (figures_paper.py, fig_sources) reads
+sources_lambda.csv and sources_lambdaoff.csv. The lambdaoff arm (lambda
+normalization plus a constant offset, scan_lambdaoff.jsonl from
+experiments/scans/run_source_scan_controls.sh) is not among the default arms,
+so for the paper run
+
+    python experiments/analyze_sources.py results/source_scan --arms lambda lambdaoff
+
+(experiments/paper_figures.sh does this when the CSVs are missing). Add raw and
+freq for the other normalizations quoted in the text.
+
 Laws are tested across sources (the source is the unit: runs of one source are
 not independent evidence about a law between sources). Each candidate gets a
 Spearman correlation with a bootstrap interval over sources, a permutation p
