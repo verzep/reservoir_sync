@@ -16,29 +16,20 @@
 """
 
 import argparse
-import json
 from collections import Counter, defaultdict
-from pathlib import Path
 
 import numpy as np
 from scipy.stats import rankdata, spearmanr
 
-UNSTABLE = -0.05  # lambda_perp threshold, as in analyze_scan.py
+from reservoir_sync.plotting import col as _col
+from reservoir_sync.plotting import load as load_records
+
+UNSTABLE = -0.05  # lambda_perp threshold (STABLE in figures_paper.py)
 FAIL = 1.0  # a start "fails" if its valid time is below one Lyapunov time
 
 
 def load(paths, source):
-    recs = []
-    for p in paths:
-        for line in Path(p).read_text().splitlines():
-            r = json.loads(line)
-            if "error" not in r and r["config"]["source"] == source and "valid_times_lyap" in r:
-                recs.append(r)
-    return recs
-
-
-def _num(x):
-    return np.nan if x is None else float(x)
+    return load_records(paths, source, keep=lambda r: "valid_times_lyap" in r)
 
 
 def _attr_dist(r):
@@ -49,7 +40,7 @@ def _attr_dist(r):
 
 
 def table(recs):
-    col = lambda f: np.array([_num(f(r)) for r in recs])
+    col = lambda f: _col(recs, f)
     tf = lambda r: r["train_field"]
     return {
         "gamma": col(lambda r: r["config"]["gamma"]),

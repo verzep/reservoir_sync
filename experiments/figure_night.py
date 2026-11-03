@@ -1,7 +1,9 @@
 """Failure rate and free-run end state vs lambda_perp, one column per scan.
 
     python experiments/figure_night.py results/night_2026-10-20/lorenz_long.jsonl:lorenz \\
-        results/night_2026-10-20/rossler_long.jsonl:rossler --out results/night_2026-10-20/fig_perp.png
+        results/night_2026-10-20/rossler_long.jsonl:rossler --out figures/fig_failure_end_state.pdf
+
+With these two scans and a .pdf output this is the paper's fig_failure_end_state.
 """
 
 import argparse
@@ -13,12 +15,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from analyze_night import FAIL, load
+from reservoir_sync.plotting import GAMMA_COLORS, INK, MUTED
+from reservoir_sync.plotting import style as _style
 
 EDGES = np.array([-np.inf, -2.0, -1.0, -0.3, -0.05, 0.3, 1.0, 3.0, np.inf])
 LABELS = ["< −2", "−2…−1", "−1…−0.3", "−0.3…−0.05", "−0.05…0.3", "0.3…1", "1…3", "> 3"]
-GAMMA_COLORS = {1.0: "#2a78d6", 5.0: "#eb6834", 20.0: "#1baf7a"}  # validated (all pairs, light)
 CLASSES = [("chaotic", "#2a78d6"), ("periodic", "#1baf7a"), ("fixed_point", "#eb6834"), ("diverged", "#9a9a94")]
-INK, MUTED, GRID = "#222220", "#6b6b66", "#e4e3de"
 NAMES = {"lorenz": "Lorenz", "rossler": "Rössler"}
 
 
@@ -27,13 +29,7 @@ def _bin(perp):
 
 
 def style(ax):
-    for s in ("top", "right"):
-        ax.spines[s].set_visible(False)
-    for s in ("left", "bottom"):
-        ax.spines[s].set_color(MUTED)
-    ax.tick_params(colors=MUTED, labelsize=8)
-    ax.yaxis.grid(True, color=GRID, lw=0.8)
-    ax.set_axisbelow(True)
+    _style(ax, labelsize=8, grid_axis="y", grid_lw=0.8)
 
 
 def main():

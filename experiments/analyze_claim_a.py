@@ -12,7 +12,6 @@ Writes a figure next to the input.
 """
 
 import argparse
-import json
 from collections import defaultdict
 from pathlib import Path
 
@@ -23,9 +22,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import spearmanr
 
+from reservoir_sync.plotting import read_jsonl
+
 
 def load(path):
-    recs = [json.loads(l) for l in Path(path).read_text().splitlines()]
+    recs = read_jsonl(path)
     bad = [r for r in recs if "error" in r]
     if bad:
         print(f"{len(bad)} failed tasks, first error:\n{bad[0]['error']}")
