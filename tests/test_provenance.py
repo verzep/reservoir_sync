@@ -27,8 +27,9 @@ def test_run_records_provenance():
     json.dumps(out)  # stays a JSON line
 
 
-def test_opening_transverse_exponent_matches_run():
-    """figures_paper.transverse_exponent (the opening figure's titles) is run()'s lambda_perp_driven."""
+def test_opening_diagnostics_match_run():
+    """figures_paper.opening_diagnostics (the opening figure's titles and printed numbers) gives run()'s
+    training error, largest CLE, lambda_perp_driven and median valid time."""
     import importlib.util
     from pathlib import Path
 
@@ -42,7 +43,7 @@ def test_opening_transverse_exponent_matches_run():
     figures_paper = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(figures_paper)
 
-    cfg = Config(source="rossler", n=20, t_washout=2, t_train=10, t_test=4, t_lyap=3, k=4, n_starts=0, seed=3)
+    cfg = Config(source="rossler", n=20, t_washout=2, t_train=10, t_test=4, t_lyap=3, k=4, n_starts=20, seed=3)
     out = run(cfg)
     source = make_source(cfg.source)
     res = random_reservoir(cfg.n, source.dim, cfg.kind, cfg.spectral_radius, cfg.input_scale,
@@ -52,5 +53,9 @@ def test_opening_transverse_exponent_matches_run():
     full = drive(source, res, s0, np.zeros(res.n), cfg.dt, n_wash + n_train + 400)
     train = full[n_wash : n_wash + n_train + 1]
     N = fit_readout(train.R, train.S, cfg.beta)
-    perp = figures_paper.transverse_exponent(source, res, N, train.S[-1], train.R[-1], cfg.dt, cfg.t_lyap, cfg.k)
-    assert perp == pytest.approx(out["lambda_perp_driven"], abs=1e-9)
+    test = full[n_wash + n_train :]
+    d = figures_paper.opening_diagnostics(source, res, N, train, test, cfg.dt, cfg.t_lyap, cfg.k)
+    assert d["perp"] == pytest.approx(out["lambda_perp_driven"], abs=1e-9)
+    assert d["cle_max"] == pytest.approx(out["lyap_cle"][0], abs=1e-9)
+    assert d["train_nrmse"] == pytest.approx(out["train_nrmse"], abs=1e-12)
+    assert d["valid_median_lyap"] == pytest.approx(out["valid_median_lyap"], abs=1e-9)

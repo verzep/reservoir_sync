@@ -35,6 +35,7 @@ import numpy as np
 from scipy.stats import spearmanr
 
 from analyze_night import FAIL, UNSTABLE, load, table, within_gamma
+from reservoir_sync.experiment import rate_test_passes
 
 # every third source by lambda_1 / |lambda_min|, Lorenz and Rossler kept for
 # discovery since they motivated the question; set by select_held_out, frozen here
@@ -102,11 +103,11 @@ def source_row(name, recs, cal):
     for cls in ("fixed_point", "periodic", "chaotic", "diverged"):
         row[f"end_{cls}"] = ends[cls] / len(recs)
     row["end_on_source"] = on / len(recs)
-    # the rate condition for a differentiable synchronization map, CLE < lambda_min
-    smooth = np.array([bool(r["smooth_sync_condition"]) for r in recs])
-    row["smooth"] = float(smooth.mean())
-    row["unstable_smooth"] = float(np.mean(perp[smooth & known] >= UNSTABLE)) if (smooth & known).any() else np.nan
-    row["unstable_rough"] = float(np.mean(perp[~smooth & known] >= UNSTABLE)) if (~smooth & known).any() else np.nan
+    # the rate test, CLE < lambda_min: sufficient for a differentiable synchronization map, nothing more
+    passes = np.array([rate_test_passes(r) for r in recs])
+    row["rate_passes"] = float(passes.mean())
+    row["unstable_rate_passes"] = float(np.mean(perp[passes & known] >= UNSTABLE)) if (passes & known).any() else np.nan
+    row["unstable_rate_fails"] = float(np.mean(perp[~passes & known] >= UNSTABLE)) if (~passes & known).any() else np.nan
     return row
 
 
@@ -290,15 +291,15 @@ def figure(path, per_arm):
     plt.close(fig)
 
 
-def smooth_table(per_arm):
-    print("\n=== Rate condition CLE < lambda_min: unstable fraction with and without it (runs pooled per arm)")
+def rate_test_table(per_arm):
+    print("\n=== Rate test CLE < lambda_min: unstable fraction when it passes and fails (runs pooled per arm)")
     for arm, rows in per_arm.items():
         n = np.array([r["runs"] for r in rows], float)
-        f = np.array([r["smooth"] for r in rows])
-        us = np.array([0.0 if np.isnan(r["unstable_smooth"]) else r["unstable_smooth"] for r in rows])
-        ur = np.array([0.0 if np.isnan(r["unstable_rough"]) else r["unstable_rough"] for r in rows])
+        f = np.array([r["rate_passes"] for r in rows])
+        us = np.array([0.0 if np.isnan(r["unstable_rate_passes"]) else r["unstable_rate_passes"] for r in rows])
+        ur = np.array([0.0 if np.isnan(r["unstable_rate_fails"]) else r["unstable_rate_fails"] for r in rows])
         ns, nr = (n * f).sum(), (n * (1 - f)).sum()
-        print(f"  {arm:10s} holds in {ns:5.0f} runs, unstable {(n * f * us).sum() / max(ns, 1):.2f};"
+        print(f"  {arm:10s} passes in {ns:5.0f} runs, unstable {(n * f * us).sum() / max(ns, 1):.2f};"
               f" fails in {nr:5.0f} runs, unstable {(n * (1 - f) * ur).sum() / max(nr, 1):.2f}")
 
 
@@ -396,7 +397,7 @@ def main():
         for col in ("gamma_over_l1", "gamma_period"):
             print(f"pooled over arms, {col}: rho %+.2f [%+.2f, %+.2f]" % cell_law(pooled, col))
     write_csv(a.dir / "laws.csv", all_laws)
-    smooth_table(per_arm)
+    rate_test_table(per_arm)
     if (a.dir / "scan_lambdaoff.jsonl").exists() and (a.dir / "scan_lambda.jsonl").exists():
         paired_arms(a.dir, "lambda", "lambdaoff", calibration)
     figure(a.dir / "source_laws.png", per_arm)

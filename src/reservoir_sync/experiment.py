@@ -106,6 +106,14 @@ def provenance() -> dict:
     }
 
 
+def rate_test_passes(record) -> bool:
+    """The rate test of a run record (largest CLE < smallest source exponent).
+    Records written before the rename store it as "smooth_sync_condition"."""
+    if "rate_test_passes" in record:
+        return bool(record["rate_test_passes"])
+    return bool(record["smooth_sync_condition"])
+
+
 def _steps(t, dt):
     return int(round(t / dt))
 
@@ -190,8 +198,10 @@ def run(cfg: Config) -> dict:
         end["class"] = "chaotic" if lam1 > 0.2 * lam_src[0] else "periodic"
         end["on_source"] = bool(max(end["nn_to_source"], end["nn_from_source"]) < 0.05)
     out["end_state"] = end
-    # rate condition for a differentiable synchronization map
-    out["smooth_sync_condition"] = bool(lam_cle[0] < lam_src[-1])
+    # rate test: largest CLE below the smallest source exponent. A sufficient
+    # condition for a differentiable synchronization map, nothing more: a run
+    # that fails it is not known to be non-smooth.
+    out["rate_test_passes"] = bool(lam_cle[0] < lam_src[-1])
     extra = extra_exponents(lam_cl_driven, lam_src)
     out["lambda_perp_driven"] = float(extra[0]) if extra.size else None
     extra = extra_exponents(lam_cl_free, lam_src)

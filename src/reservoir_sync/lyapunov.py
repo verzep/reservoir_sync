@@ -5,11 +5,13 @@ All spectra are the top k exponents, sorted in decreasing order:
 - source: ds/dt = g(s)
 - conditional (CLEs): the driven reservoir with the input held fixed, A_c
 - closed loop, "driven" base: the closed-loop Jacobian A_c + B N^T evaluated
-  along the synchronized (driven) trajectory, i.e. the linearization around
-  phi(s(t)). With exact reconstruction its spectrum is the source exponents
-  plus the transverse ones.
+  along the synchronized (driven, "listening") trajectory, i.e. the
+  linearization around phi(s(t)). This is the computation of Lu, Hunt and Ott
+  (2018, Secs. II D-E). With exact reconstruction its spectrum contains the
+  source's non-negative exponents plus the transverse ones (extra_exponents).
 - closed loop, "free" base: the same Jacobian along the free-running
-  trajectory (the Lu-Hunt-Ott diagnostic).
+  trajectory, i.e. the spectrum of the attractor the closed loop actually
+  reaches (used to classify its end state).
 """
 
 import numpy as np
@@ -89,8 +91,12 @@ def closed_loop_exponents_free(reservoir, N, r0, dt, n_steps, k, **kw):
 
 def extra_exponents(closed_loop, source_exps, tol=0.1):
     """Closed-loop exponents left after removing a match for each source
-    exponent >= -tol (the unstable and neutral ones, along which phi stays
-    differentiable). The largest leftover estimates the top transverse exponent.
+    exponent >= -tol (the unstable and neutral ones, which survive in the
+    closed-loop spectrum without a smooth phi): for each such source exponent,
+    in order, the nearest remaining closed-loop exponent is removed. The
+    largest leftover is lambda_perp. Source exponents below -tol are not
+    removed, so lambda_perp can itself be a (negative) source exponent when
+    no transverse exponent lies above it.
     """
     left = list(closed_loop)
     for lam in source_exps:

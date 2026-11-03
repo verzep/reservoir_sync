@@ -163,15 +163,31 @@ def fig_overview(out):
     fig.savefig(out / "fig_overview.pdf")
 
 
-def transverse_exponent(source, res, N, s_sync, r_sync, dt, t_lyap, k=10):
-    """lambda_perp along the driven trajectory from the synchronized state, as in
-    reservoir_sync.experiment.run (field lambda_perp_driven)."""
-    from reservoir_sync.lyapunov import closed_loop_exponents_driven, extra_exponents, source_exponents
+def opening_diagnostics(source, res, N, train, test, dt, t_lyap, k=10, n_starts=20):
+    """The numbers the paper quotes for the opening example, computed as in
+    reservoir_sync.experiment.run with the scan's settings (t_test = 300, so 20 free
+    runs of 150 time units): training error, largest CLE, lambda_perp (field
+    lambda_perp_driven) and the median valid time in Lyapunov times (uncentred norm,
+    closed_loop.valid_time)."""
+    from reservoir_sync.closed_loop import valid_times
+    from reservoir_sync.lyapunov import (closed_loop_exponents_driven, conditional_exponents, extra_exponents,
+                                         source_exponents)
+    from reservoir_sync.readout import nrmse
 
     n = int(round(t_lyap / dt))
+    s_sync, r_sync = train.S[-1], train.R[-1]
     lam_src = source_exponents(source, s_sync, dt, n)
+    lam_cle = conditional_exponents(source, res, s_sync, r_sync, dt, n, k)
     lam_cl = closed_loop_exponents_driven(source, res, N, s_sync, r_sync, dt, n, k)
-    return float(extra_exponents(lam_cl, lam_src)[0])
+    n_pred = (len(test.S) - 1) // 2  # t_pred = t_test / 2, run()'s default
+    starts = np.linspace(0, len(test.S) - n_pred - 1, n_starts).astype(int)
+    vts = valid_times(res, N, test, starts, n_pred) * float(lam_src[0])
+    return {"train_nrmse": nrmse(train.S, train.R @ N), "cle_max": float(lam_cle[0]),
+            "perp": float(extra_exponents(lam_cl, lam_src)[0]), "valid_median_lyap": float(np.median(vts))}
+
+
+# the values the paper's text quotes, printed next to the recomputed ones
+OPENING_PAPER = {1: "5.75e-5, -2.97, -1.00, 4.8", 21: "5.76e-5, -2.98, +0.25, 0.5"}
 
 
 def fig_opening(out, t_lyap=2000.0):
@@ -196,9 +212,12 @@ def fig_opening(out, t_lyap=2000.0):
         full = drive(source, res, s0, np.zeros(res.n), dt, n_wash + n_train + n_pred)
         train = full[n_wash : n_wash + n_train + 1]
         N = fit_readout(train.R, train.S, 1e-6)
-        perp = transverse_exponent(source, res, N, train.S[-1], train.R[-1], dt, t_lyap)
-        title = title.format(f"{perp:+.2f}".replace("-", "−"))
-        print(f"fig_opening seed {seed}: lambda_perp = {perp:+.3f} (paper: seed 1 -1.00, seed 21 +0.25)")
+        test = full[n_wash + n_train :]
+        d = opening_diagnostics(source, res, N, train, test, dt, t_lyap)
+        title = title.format(f"{d['perp']:+.2f}".replace("-", "−"))
+        print(f"fig_opening seed {seed}: training error {d['train_nrmse']:.3g}, largest CLE {d['cle_max']:+.3f},"
+              f" lambda_perp {d['perp']:+.3f}, median valid time {d['valid_median_lyap']:.2f} Lyapunov times"
+              f" (paper: {OPENING_PAPER[seed]})")
         out_free = run_autonomous(res, N, train.R[-1], dt, n_pred) @ N
         truth = full.S[n_wash + n_train :]
         t = np.arange(len(out_free)) * dt
