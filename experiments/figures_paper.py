@@ -307,7 +307,7 @@ def fig_predictors(data, out):
             scatter_by_gamma(ax, x, valid, gamma)
             if logx:
                 ax.set_xscale("log")
-            ax.set_title(f"ρ = {within_gamma_rho(x, valid, gamma):+.2f}", loc="left")
+            ax.set_title(f"$r_s$ = {within_gamma_rho(x, valid, gamma):+.2f}", loc="left")
             if i == 1:
                 ax.set_xlabel(label)
             if j == 0:
@@ -346,7 +346,7 @@ def fig_sources(scan, out):
     a.axvline(0, color=INK, lw=0.6)
     a.set_xlim(-1, 0.05)
     a.set_yticks([])
-    a.set_xlabel("ρ(λ⊥, valid time)")
+    a.set_xlabel("$r_s$(λ⊥, valid time)")
     a.set_ylabel("the 19 systems, sorted")
     a.set_title("(a) λ⊥ predicts in every system", loc="left", fontsize=8)
     rows = list(base.values())
@@ -359,7 +359,7 @@ def fig_sources(scan, out):
     b.set_ylim(0, 1)
     b.set_xlabel("λ₁ / |λ_min|")
     b.set_ylabel("unstable fraction")
-    b.set_title("(b) The source does not set it", loc="left", fontsize=8)
+    b.set_title("(b) No detectable relation", loc="left", fontsize=8)
     for key, shift in [("rossler", 0.05), ("lu_chen", -0.07), ("thomas", -0.08), ("lorenz", -0.07)]:
         r = base[key]
         b.text(float(r["ratio"]), float(r["unstable"]) + shift, names[key], fontsize=6.5, color=MUTED)
