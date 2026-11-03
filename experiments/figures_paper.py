@@ -275,11 +275,21 @@ def fig_tangent_survival(data, out):
         stable = [r for r in recs if r["lambda_perp_driven"] < STABLE]
         cle = col(stable, lambda r: r["lyap_cle"][0])
         src = np.median([r["lyap_source"] for r in recs], axis=0)
-        near = lambda r, s: min(r["lyap_closed_driven"], key=lambda c: abs(c - s))
-        ax.scatter(cle, col(stable, lambda r: near(r, r["lyap_source"][0])), s=6, lw=0,
+        # Pick without replacement, as the lambda_perp rule does: the exponent
+        # nearest to lambda_1, then the nearest to 0 among the remaining ones.
+        # Picking both independently can choose the same exponent twice and
+        # hide a run that reproduces neither.
+        def picks(r):
+            left = list(r["lyap_closed_driven"])
+            first = min(left, key=lambda c: abs(c - r["lyap_source"][0]))
+            left.remove(first)
+            second = min(left, key=lambda c: abs(c - r["lyap_source"][1]))
+            return first, second
+        pairs = [picks(r) for r in stable]
+        ax.scatter(cle, [p[0] for p in pairs], s=6, lw=0,
                    color=GAMMA_COLORS[1.0], label="nearest to λ₁")
-        ax.scatter(cle, col(stable, lambda r: near(r, r["lyap_source"][1])), s=6, lw=0,
-                   color=GAMMA_COLORS[5.0], label="nearest to 0")
+        ax.scatter(cle, [p[1] for p in pairs], s=6, lw=0,
+                   color=GAMMA_COLORS[5.0], label="nearest to 0 among the rest")
         ax.axhline(src[0], color=MUTED, lw=0.8, ls="--")
         ax.axhline(0, color=MUTED, lw=0.8, ls="--")
         ax.axvline(src[2], color=INK, lw=0.8)
