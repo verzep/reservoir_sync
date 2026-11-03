@@ -361,12 +361,28 @@ def controls(d):
     write_csv(d / "controls.csv", out)
 
 
+def pooled_fractions(d, arm):
+    """Unstable fraction pooled over all runs of an arm, by spectral radius and by input scale (Sec. 5.2)."""
+    recs = [r for name in json.loads((d / "calibration.json").read_text()) for r in load([d / f"scan_{arm}.jsonl"], name)
+            if r["lambda_perp_driven"] is not None]
+    print(f"\n=== {arm}: unstable fraction pooled over {len(recs)} runs (lambda_perp >= {UNSTABLE})")
+    for field, label in (("spectral_radius", "spectral radius"), ("input_scale", "input scale")):
+        x = np.array([r["config"][field] for r in recs])
+        un = np.array([r["lambda_perp_driven"] >= UNSTABLE for r in recs])
+        print(f"  {label}: " + ", ".join(f"{v:g}: {un[x == v].mean():.3f}" for v in np.unique(x)))
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("dir", type=Path)
     p.add_argument("--arms", nargs="+", default=["raw", "lambda", "freq"])
     p.add_argument("--controls-only", action="store_true")
+    p.add_argument("--pooled", action="store_true", help="only print the pooled unstable fractions of each arm")
     a = p.parse_args()
+    if a.pooled:
+        for arm in a.arms:
+            pooled_fractions(a.dir, arm)
+        return
     controls(a.dir)
     if a.controls_only:
         return

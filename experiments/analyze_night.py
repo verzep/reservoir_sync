@@ -13,6 +13,8 @@
 5. Variants: medians per readout / reservoir variant (kind, n, beta, penalties)
    and gamma; for the penalty and one-at-a-time scans.
 6. Readout variants paired with the plain ridge readout of the same reservoir.
+7. Paper Secs. 5.3-5.4: lambda_perp against the largest conditional exponent, and survival of the source
+   exponents lambda_1 and 0 in the closed loop among runs failing the rate test.
 """
 
 import argparse
@@ -220,11 +222,36 @@ def paired(T, recs):
               f"     {np.mean(b > a):5.2f}        {np.mean(ua):4.2f} -> {np.mean(ub):4.2f}")
 
 
+def gap_and_survival(recs, tol=0.05):
+    from reservoir_sync.experiment import rate_test_passes
+    perp = np.array([r["lambda_perp_driven"] for r in recs], float)
+    cle = np.array([r["lyap_cle"][0] for r in recs], float)
+    print(f"\n7. lambda_perp > largest CLE in {int((perp > cle).sum())}/{len(recs)}; median gap {np.nanmedian(perp - cle):+.2f}")
+    rate = np.array([rate_test_passes(r) for r in recs])
+    print(f"  rate test passes in {rate.sum()}/{len(recs)}")
+    for distinct in (False, True):
+        hits = defaultdict(lambda: [0, 0])
+        for r, p_, ok in zip(recs, perp, rate):
+            if ok:
+                continue
+            lam, src = list(r["lyap_closed_driven"]), r["lyap_source"]
+            i = int(np.argmin([abs(c - src[0]) for c in lam]))
+            a1 = lam[i]
+            if distinct:
+                lam.pop(i)
+            a0 = min(lam, key=lambda c: abs(c - src[1]))
+            key = "stable" if p_ < UNSTABLE else "unstable"
+            hits[key][0] += abs(a1 - src[0]) < tol and abs(a0 - src[1]) < tol
+            hits[key][1] += 1
+        print(f"  rate test fails, both lambda_1 and 0 within {tol} ({'distinct' if distinct else 'independent'} nearest): "
+              + ", ".join(f"{k} {h}/{n}" for k, (h, n) in sorted(hits.items())))
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("paths", nargs="+")
     p.add_argument("--source", required=True)
-    p.add_argument("--sections", default="123456")
+    p.add_argument("--sections", default="1234567")
     a = p.parse_args()
     recs = load(a.paths, a.source)
     T = table(recs)
@@ -241,6 +268,8 @@ def main():
         variants(T, recs)
     if "6" in a.sections:
         paired(T, recs)
+    if "7" in a.sections:
+        gap_and_survival(recs)
 
 
 if __name__ == "__main__":

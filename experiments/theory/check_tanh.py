@@ -1,7 +1,7 @@
 """Tanh-reservoir checks (section 3, 4.6): loop identity and QA in rate-condition runs,
 predictors of failure among transversely stable runs (fixed-point rate, moment exponents).
 
-    python check_tanh.py rossler 54 out.jsonl
+    python check_tanh.py rossler 54 out.jsonl [workers, default 4]
 """
 
 import os
@@ -201,7 +201,7 @@ def task(args):
 if __name__ == "__main__":
     name, seeds, out = sys.argv[1], int(sys.argv[2]), sys.argv[3]
     grid = list(itertools.product([name], [1.0, 5.0, 20.0], [0.5, 0.9, 1.2], [0.02, 0.05, 0.1], range(seeds)))
-    with mp.Pool(4) as p, open(out, "w") as f:
+    with mp.Pool(int(sys.argv[4]) if len(sys.argv) > 4 else 4) as p, open(out, "w") as f:
         for r in p.imap_unordered(task, grid):
             f.write(json.dumps(r) + "\n")
             f.flush()

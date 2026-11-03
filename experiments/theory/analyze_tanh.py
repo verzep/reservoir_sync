@@ -1,4 +1,9 @@
-"""Summaries of check_tanh output."""
+"""Summaries of check_tanh output.
+
+    python analyze_tanh.py [--threshold T] out.jsonl ...
+
+A run is transversely unstable if lambda_perp >= T (default 0; the paper's numerical threshold is -0.05).
+"""
 
 import json
 import sys
@@ -17,13 +22,18 @@ def auc(x, y):
     return (r[y].sum() - y.sum() * (y.sum() + 1) / 2) / (y.sum() * (~y).sum())
 
 
-for path in sys.argv[1:]:
+args = sys.argv[1:]
+THR = 0.0
+if args[:1] == ["--threshold"]:
+    THR, args = float(args[1]), args[2:]
+
+for path in args:
     R = [json.loads(l) for l in open(path)]
     R = [r for r in R if r["lambda_perp"] is not None]
     lp = np.array([r["lambda_perp"] for r in R])
     gam = np.array([r["gamma"] for r in R])
     fail = np.array([not r["on_source"] for r in R])
-    print(f"== {path}: {len(R)} runs, unstable {np.sum(lp > 0)}, not on source {fail.sum()}")
+    print(f"== {path} (threshold {THR:g}): {len(R)} runs, unstable {np.sum(lp >= THR)}, not on source {fail.sum()}")
     stats = {k: np.array([r["stats"][k] for r in R]) for k in R[0]["stats"]}
     cle = np.array([r["cle"][0] for r in R])
     feats = {"cle1": cle, "train": np.log10([r["train_nrmse"] for r in R]), **stats,
@@ -34,7 +44,7 @@ for path in sys.argv[1:]:
         print(f" gamma={g} n={m.sum()} Spearman with lambda_perp: {txt}")
     # gap
     print(f" gap lambda_perp - cle1: median {np.median(lp - cle):+.2f}, positive {np.sum(lp > cle)}/{len(R)}")
-    st = lp < 0
+    st = lp < THR
     print(f" transversely stable {st.sum()}, of which fail {fail[st].sum()}")
     L = {q: np.array([r["L"][q] for r in R]) for q in ["1", "2", "4", "8"]}
     fp = np.array([max(x["rate"] for x in r["fp"]) if r["fp"] else np.nan for r in R])
