@@ -1,6 +1,6 @@
 """Figures of the paper, as vector PDFs.
 
-    python experiments/figures_paper.py --results results/night_2026-10-20 \
+    python experiments/figures_paper.py --results results/night_2026-10-20 \\
         --source-scan results/source_scan --out figures
 
 Without --results / --source-scan only the figures that need no results are made.
