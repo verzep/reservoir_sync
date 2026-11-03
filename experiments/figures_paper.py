@@ -10,6 +10,8 @@
 5. fig_opening: two reservoirs alike in training, opposite in free run (needs no results).
 6. fig_overview: schematic of training and closing the loop (needs no results).
 7. fig_sources: the 19-system scan (needs --source-scan).
+8. fig_family: the exact chaotic family, lambda_perp against the conditional exponents (needs no results).
+9. fig_bubbling: bursts at a negative lambda_perp in the same family (needs no results).
 """
 
 import argparse
@@ -66,8 +68,8 @@ def scatter_by_gamma(ax, x, y, gamma):
 
 
 def fig_overview(out):
-    # the three phases, drawn with the data of the stable reservoir of fig_opening
-    from matplotlib.patches import Circle, FancyArrowPatch, Rectangle
+    # the two phases, with the attractors of the two Rossler reservoirs of fig_opening
+    from matplotlib.patches import Circle, FancyArrowPatch, FancyBboxPatch
 
     from reservoir_sync.closed_loop import run_autonomous
     from reservoir_sync.driven import drive, settle_source
@@ -88,87 +90,83 @@ def fig_overview(out):
 
     train, decoded, free_stable = trained(1)
     free_unstable = trained(21)[2]
-    W, H = 6.5, 3.5
+    W, H = 6.5, 3.3
     blue, orange = GAMMA_COLORS[1.0], GAMMA_COLORS[5.0]
     fig = plt.figure(figsize=(W, H))
     ax = fig.add_axes([0, 0, 1, 1])
     ax.set(xlim=(0, W), ylim=(0, H))
     ax.axis("off")
+    S = train.S[::2]
+    lo, hi = S.min(axis=0), S.max(axis=0)
 
-    def thumb(x0, y0, x1, y1, curves, muted=False):
-        a = fig.add_axes([x0 / W, y0 / H, (x1 - x0) / W, (y1 - y0) / H])
-        for xs, ys, c, lw in curves:
-            a.plot(xs, ys, color=c, lw=lw)
-        a.set(xticks=[], yticks=[])
-        for s in a.spines.values():
-            s.set_color(GRID if muted else MUTED)
-            s.set_linewidth(0.6)
-            s.set_linestyle("--" if muted else "-")
-        a.margins(0.06)
+    def attractor(cx, cy, size, curves, title=None, title_color=INK):
+        a = fig.add_axes([(cx - size / 2) / W, (cy - size / 2) / H, size / W, size / H], projection="3d")
+        for X, col, lw, alpha in curves:
+            X = X[np.all(np.isfinite(X), axis=1)]
+            X = X[np.all((X > lo - 0.6 * (hi - lo)) & (X < hi + 0.6 * (hi - lo)), axis=1)]
+            a.plot(X[:, 0], X[:, 1], X[:, 2], color=col, lw=lw, alpha=alpha)
+        a.set(xlim=(lo[0], hi[0]), ylim=(lo[1], hi[1]), zlim=(lo[2], hi[2]))
+        a.view_init(elev=22, azim=-60)
+        a.set_axis_off()
+        a.patch.set_alpha(0)
+        if title:
+            label(cx, cy + size / 2 - 0.12, title, fontsize=7.5, color=title_color)
 
     def arrow(points, color=INK, ls="-", lw=1.0):
-        ax.plot(*zip(*points[:-1]), color=color, ls=ls, lw=lw, solid_capstyle="butt")
+        if len(points) > 2:
+            ax.plot(*zip(*points[:-1]), color=color, ls=ls, lw=lw, solid_capstyle="butt")
         ax.add_patch(FancyArrowPatch(points[-2], points[-1], arrowstyle="-|>", mutation_scale=8,
                                      color=color, ls=ls, lw=lw, shrinkA=0, shrinkB=0))
 
-    def surrogate(cx, cy, r=0.42):
+    def surrogate(cx, cy, r=0.36):
         ax.add_patch(Circle((cx, cy), r, fc="#f1f0ec", ec=MUTED, lw=0.8))
         rng = np.random.default_rng(3)
         angles = np.arange(7) * 2 * np.pi / 7 + 0.3
-        pts = np.c_[cx + 0.28 * np.cos(angles), cy + 0.28 * np.sin(angles)]
+        pts = np.c_[cx + 0.24 * np.cos(angles), cy + 0.24 * np.sin(angles)]
         for i, j in rng.integers(0, 7, (11, 2)):
             if i != j:
                 ax.plot(*zip(pts[i], pts[j]), color=MUTED, lw=0.4)
-        ax.scatter(*pts.T, s=16, fc="white", ec=INK, lw=0.6, zorder=3)
+        ax.scatter(*pts.T, s=12, fc="white", ec=INK, lw=0.6, zorder=3)
 
     def label(x, y, text, **kw):
-        ax.text(x, y, text, ha=kw.pop("ha", "center"), va="center", **kw)
+        ax.text(x, y, text, ha=kw.pop("ha", "center"), va=kw.pop("va", "center"), **kw)
 
-    y1, y2 = 2.42, 0.72  # row centers
-    Sx, Sy = train.S[:, 0], train.S[:, 1]
-    t = np.arange(4000) * dt
-    scale = train.S.max(axis=0) - train.S.min(axis=0)
-    mid = train.S.min(axis=0)
+    def panel(y0, y1, title):
+        ax.add_patch(FancyBboxPatch((0.08, y0), W - 0.16, y1 - y0, boxstyle="round,pad=0,rounding_size=0.08",
+                                    fc="none", ec=GRID, lw=0.8))
+        label(0.18, y1 - 0.13, title, ha="left", fontweight="bold", fontsize=8)
 
-    def signals(x):  # the three coordinates, stacked
-        return [(t, (x[:4000, i] - mid[i]) / scale[i] * 0.85 + 2 - i, c, 0.6) for i, c in
-                enumerate((blue, INK, orange))]
+    xs, xr, xo = 1.15, 3.25, 5.35  # columns: source, surrogate, output
+    y1, y2 = 2.35, 0.78  # row centres
+    panel(1.68, 3.24, "1  Listening and fitting: the source drives the surrogate")
+    panel(0.06, 1.6, "2  Autonomous: the decoded output replaces the source")
 
-    label(1.05, 3.37, "Source", fontweight="bold")
-    label(3.75, 3.37, "Surrogate", fontweight="bold")
-    label(5.5, 3.37, "Output", fontweight="bold")
-    label(0.2, y1, "Listening\nand fitting", rotation=90, fontweight="bold")
-    label(0.2, y2, "Autonomous", rotation=90, fontweight="bold")
-    ax.plot([0.05, W - 0.05], [1.5, 1.5], color=GRID, lw=0.8)
+    # row 1
+    attractor(xs, y1 - 0.02, 1.45, [(S, INK, 0.45, 0.9)])
+    label(xs, y1 - 0.66, r"source $\dot{\mathbf{s}}=\mathbf{g}(\mathbf{s})$", fontsize=7.5)
+    arrow([(xs + 0.62, y1), (xr - 0.42, y1)])
+    label((xs + xr) / 2 + 0.08, y1 + 0.12, r"$\mathbf{s}(t)$", fontsize=7.5)
+    surrogate(xr, y1)
+    label(xr, y1 - 0.53, r"surrogate $\dot{\mathbf{r}}=\mathbf{f}(\mathbf{r},\mathbf{s})$", fontsize=7.5)
+    arrow([(xr + 0.42, y1), (xo - 0.62, y1)], ls="--")
+    label((xr + xo) / 2 - 0.08, y1 + 0.12, r"fit $\boldsymbol{\psi}$", fontsize=7.5)
+    attractor(xo, y1 - 0.02, 1.45, [(S, GRID, 1.6, 1.0), (decoded[::2], blue, 0.45, 0.9)])
+    label(xo, y1 - 0.66, r"decoded $\hat{\mathbf{s}}=\boldsymbol{\psi}(\mathbf{r})\approx\mathbf{s}$", fontsize=7.5)
 
-    # listening and fitting: the full state drives the surrogate
-    label(1.05, 3.14, r"$\dot{\mathbf{s}}=\mathbf{g}(\mathbf{s})$")
-    thumb(0.55, y1 - 0.5, 1.55, y1 + 0.5, [(Sx, Sy, MUTED, 0.4)])
-    arrow([(1.55, y1), (1.95, y1)])
-    label(2.5, 3.14, r"$\mathbf{s}(t)$")
-    thumb(1.95, y1 - 0.5, 3.0, y1 + 0.5, signals(train.S))
-    arrow([(3.0, y1), (3.33, y1)])
-    label(3.75, 3.14, r"$\dot{\mathbf{r}}=\mathbf{f}(\mathbf{r},\mathbf{s})$")
-    surrogate(3.75, y1)
-    label(5.5, 3.14, r"$\hat{\mathbf{s}}=\boldsymbol{\psi}(\mathbf{r})\approx\mathbf{s}$")
-    thumb(4.95, y1 - 0.5, 6.05, y1 + 0.5, signals(decoded))
-    arrow([(4.17, y1), (4.95, y1)], ls="--")
-    label(4.56, y1 + 0.12, r"fit $\boldsymbol{\psi}$", fontsize=7.5)
-
-    # closed loop: same training, two possible fates
-    thumb(0.55, y2 - 0.5, 1.55, y2 + 0.5, [(Sx, Sy, GRID, 0.4)], muted=True)
-    label(1.05, 0.1, "disconnected", fontsize=7.5, color=MUTED)
-    surrogate(3.75, y2)
-    label(3.75, y2 + 0.56, r"$\dot{\mathbf{r}}=\mathbf{f}(\mathbf{r},\boldsymbol{\psi}(\mathbf{r}))$")
-    thumb(4.75, y2 - 0.36, 5.5, y2 + 0.39, [(Sx, Sy, GRID, 0.5), (free_stable[:, 0], free_stable[:, 1], blue, 0.4)])
-    thumb(5.6, y2 - 0.36, 6.35, y2 + 0.39, [(Sx, Sy, GRID, 0.5), (free_unstable[:, 0], free_unstable[:, 1], orange, 0.5)])
-    label(5.125, y2 + 0.5, "stays", fontsize=7.5, color=blue)
-    label(5.975, y2 + 0.5, "leaves", fontsize=7.5, color=orange)
-    arrow([(4.17, y2), (4.75, y2)])
-    label(4.46, y2 + 0.12, r"$\boldsymbol{\psi}$", fontsize=7.5)
-    arrow([(4.46, y2), (4.46, 0.1), (2.85, 0.1), (2.85, y2), (3.33, y2)], color=INK, lw=1.2)
-    label(3.65, 0.19, "output fed back as input", fontsize=7.5)
-    label(5.55, 0.12, "what decides?", fontsize=8, fontstyle="italic")
+    # row 2
+    attractor(xs, y2 - 0.05, 1.3, [(S, GRID, 0.45, 1.0)])
+    label(xs, y2 - 0.6, "source disconnected", fontsize=7.5, color=MUTED)
+    surrogate(xr, y2 - 0.05)
+    xl, yb = xr + 0.62, y2 - 0.5
+    arrow([(xr + 0.38, y2 - 0.05), (xl, y2 - 0.05), (xl, yb), (xr - 0.62, yb), (xr - 0.62, y2 - 0.05),
+           (xr - 0.38, y2 - 0.05)], lw=1.1)
+    label(xr, yb - 0.11, r"$\boldsymbol{\psi}(\mathbf{r})$ fed back as input", fontsize=7.5)
+    label(xr, y2 + 0.48, r"$\dot{\mathbf{r}}=\mathbf{f}(\mathbf{r},\boldsymbol{\psi}(\mathbf{r}))$", fontsize=7.5)
+    arrow([(xl, y2 - 0.05), (xo - 0.95, y2 - 0.05)])
+    attractor(xo - 0.5, y2 - 0.12, 1.2, [(S, GRID, 1.6, 1.0), (free_stable[::2], blue, 0.45, 0.9)],
+              title="stays on the attractor", title_color=blue)
+    attractor(xo + 0.62, y2 - 0.12, 1.2, [(S, GRID, 1.6, 1.0), (free_unstable[::2], orange, 0.45, 0.9)],
+              title="leaves it", title_color=orange)
     fig.savefig(out / "fig_overview.pdf")
 
 
@@ -352,16 +350,201 @@ def fig_sources(scan, out):
     fig.savefig(out / "fig_sources.pdf")
 
 
+# --- the exact chaotic family of Sec. 4 (Lorenz source, phi(s) = (s, h(s_3)), N^T = (I, 0)) ---
+
+def lorenz(s):
+    return np.array([10.0 * (s[1] - s[0]), s[0] * (28.0 - s[2]) - s[1], s[0] * s[1] - 8 / 3 * s[2]])
+
+
+class Family:
+    """y' = g(s) - k(y - s) + c (z - h(s3)),  z' = h'(s3) g3(s) + D.(y - s) + E (z - h(s3)).
+
+    h' = a0 sech^2((s3 - 27)/4), c = (0, 0, -1). In closed loop chi = z - h(y3) obeys
+    chi' = (E + h'(y3)) chi, so lambda_perp = <E + h'>.
+    """
+
+    def __init__(self, E=-1.0, a0=3.0, k=5.0, D=0.3):
+        self.E, self.a0, self.k = E, a0, k
+        self.c = np.array([0.0, 0.0, -1.0])
+        self.D = np.array([0.0, 0.0, D])
+        A = np.zeros((4, 4))
+        A[:3, :3], A[:3, 3], A[3, :3], A[3, 3] = -k * np.eye(3), self.c, self.D, E
+        self.A = A  # Jacobian of the driven surrogate: constant, so the CLEs are its eigenvalues
+
+    def h(self, s3):
+        return self.a0 * 4.0 * np.tanh((s3 - 27.0) / 4.0)
+
+    def dh(self, s3):
+        return self.a0 / np.cosh((s3 - 27.0) / 4.0) ** 2
+
+    def rate(self, s3):
+        return self.E + self.dh(s3)
+
+    def f(self, x, s):
+        y, z = x[:3], x[3]
+        gs, hs = lorenz(s), self.h(s[2])
+        return np.concatenate([gs - self.k * (y - s) + self.c * (z - hs),
+                               [self.dh(s[2]) * gs[2] + self.D @ (y - s) + self.E * (z - hs)]])
+
+
+def rk4(fun, x, dt):
+    k1 = fun(x); k2 = fun(x + dt / 2 * k1); k3 = fun(x + dt / 2 * k2); k4 = fun(x + dt * k3)
+    return x + dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4)
+
+
+def lorenz_orbit(T, dt=0.002, seed=0, T_settle=50.0):
+    s = np.array([1.0, 1.0, 20.0]) + np.random.default_rng(seed).normal(size=3)
+    for _ in range(int(T_settle / dt)):
+        s = rk4(lorenz, s, dt)
+    out = np.empty((int(T / dt), 3))
+    for i in range(len(out)):
+        s = rk4(lorenz, s, dt)
+        out[i] = s
+    return out
+
+
+def family_free_run(E, a0, eps, T, chi0=0.0, dt=0.002, seed=0, stride=5):
+    """Closed loop with decoder psi = y + eps b z (exact at eps = 0); returns t, |chi|, y."""
+    fam = Family(E=E, a0=a0)
+    b = np.ones(3) / np.sqrt(3)
+    s = np.array([1.0, 1.0, 20.0]) + np.random.default_rng(seed).normal(size=3)
+    for _ in range(int(50.0 / dt)):
+        s = rk4(lorenz, s, dt)
+    x = np.concatenate([s, [fam.h(s[2]) + chi0]])
+    fun = lambda x: fam.f(x, x[:3] + eps * b * x[3])
+    n = int(T / dt) // stride
+    chi, ys = np.full(n, np.nan), np.full((n, 3), np.nan)
+    for i in range(n * stride):
+        x = rk4(fun, x, dt)
+        if not np.all(np.isfinite(x)) or np.abs(x).max() > 1e4:
+            break
+        if i % stride == 0:
+            chi[i // stride] = abs(x[3] - fam.h(x[2]))
+            ys[i // stride] = x[:3]
+    return np.arange(n) * dt * stride, chi, ys
+
+
+def _family_task(args):
+    return args, family_free_run(*args)
+
+
+def fig_family(out, workers=8):
+    import multiprocessing as mp
+
+    orbit = lorenz_orbit(1000.0)
+    mean_sech2 = float(np.mean(1.0 / np.cosh((orbit[:, 2] - 27.0) / 4.0) ** 2))
+    cle = float(np.linalg.eigvals(Family().A).real.max())  # the same for every a0
+    a0s = np.linspace(0, 8, 81)
+    perp = -1.0 + a0s * mean_sech2
+    tasks = [(-1.0, a0, 0.0, 40.0, 1e-3) for a0 in (3.0, 6.0)]
+    with mp.Pool(min(workers, len(tasks))) as p:
+        runs = dict(p.map(_family_task, tasks))
+    blue, orange = GAMMA_COLORS[1.0], GAMMA_COLORS[5.0]
+    fig, (a, b, c) = plt.subplots(1, 3, figsize=(6.5, 2.35), constrained_layout=True,
+                                  width_ratios=[1.1, 1.1, 1])
+    a.plot(a0s, perp, color=INK, lw=1.4, label=r"transverse")
+    a.axhline(cle, color=MUTED, lw=1.4, ls="--", label="conditional")
+    a.axhline(0, color=GRID, lw=1.0)
+    for a0, col in ((3.0, blue), (6.0, orange)):
+        a.plot(a0, -1.0 + a0 * mean_sech2, "o", color=col, ms=5, zorder=3)
+    a.set(xlabel=r"$a_0$", ylabel="exponent")
+    a.set_title("(a) Same conditional exponents, zero\nerror, any transverse exponent", loc="left", fontsize=8)
+    a.legend(frameon=False, loc="upper left", handlelength=1.6)
+    for (args, (t, chi, ys)), col in zip(runs.items(), (blue, orange)):
+        m = np.isfinite(chi)
+        w = 50  # running maximum over 0.5 time units, which hides the dips where chi changes sign
+        env = np.array([chi[m][max(0, i - w):i + 1].max() for i in range(m.sum())])
+        b.semilogy(t[m], env, color=col, lw=0.9, label=f"$a_0={args[1]:g}$")
+    b.set(xlabel="time since the loop was closed", ylabel=r"invisible mode $|\chi|$", ylim=(1e-7, 1e3))
+    b.set_title("(b) Exact readout, offset $10^{-3}$:\none decays, one grows", loc="left", fontsize=8)
+    b.legend(frameon=False, loc="lower left")
+    c.plot(orbit[::10, 0], orbit[::10, 2], color=GRID, lw=0.5)
+    for (args, (t, chi, ys)), col, lw in reversed(list(zip(runs.items(), (blue, orange), (0.6, 0.35)))):
+        m = np.isfinite(ys[:, 0])
+        c.plot(ys[m, 0], ys[m, 2], color=col, lw=lw)
+    c.set(xlabel="$y_1$", ylabel="$y_3$", xlim=(-25, 25), ylim=(-5, 60))
+    c.set_title("(c) Decoded free runs", loc="left", fontsize=8)
+    for ax in (a, b, c):
+        style(ax)
+    fig.savefig(out / "fig_family.pdf")
+    print(f"fig_family: <sech^2> = {mean_sech2:.4f}, largest CLE = {cle:.3f}, "
+          f"lambda_perp(3) = {-1 + 3 * mean_sech2:.3f}, zero at a0 = {1 / mean_sech2:.2f}")
+
+
+def fig_bubbling(out, workers=8):
+    import multiprocessing as mp
+
+    from matplotlib.colors import TwoSlopeNorm
+
+    eps_list = [1e-5, 1e-4, 1e-3, 1e-2]
+    T = 8000.0  # as in the table of Sec. 4
+    tasks = [(-1.0, a0, eps, T, 0.0) for a0 in (3.0, 0.5) for eps in eps_list]
+    with mp.Pool(min(workers, len(tasks))) as p:
+        runs = dict(p.map(_family_task, tasks))
+    orbit = lorenz_orbit(60.0)
+    fam = Family(E=-1.0, a0=3.0)
+    mean_rate = float(np.mean(fam.rate(lorenz_orbit(1000.0)[:, 2])))
+    blue, orange = GAMMA_COLORS[1.0], GAMMA_COLORS[5.0]
+    fig, (a, b, c) = plt.subplots(1, 3, figsize=(6.5, 2.4), constrained_layout=True, width_ratios=[1.05, 1.1, 1])
+    rate = fam.rate(orbit[:, 2])
+    sc = a.scatter(orbit[::4, 0], orbit[::4, 2], c=rate[::4], s=0.6, cmap="RdBu_r",
+                   norm=TwoSlopeNorm(0.0, rate.min(), rate.max()), lw=0)
+    for x in (np.sqrt(72.0), -np.sqrt(72.0)):
+        a.plot(x, 27.0, "k+", ms=6, mew=1.0)
+    fig.colorbar(sc, ax=a, shrink=0.8, label="local transverse rate")
+    a.set(xlabel="$s_1$", ylabel="$s_3$")
+    a.set_title(f"(a) Local rate: average {mean_rate:.2f},\npositive for $s_3$ near 27", loc="left", fontsize=8)
+    for a0, col, lab in ((3.0, orange, "bubbling"), (0.5, blue, "uniform contraction")):
+        t, chi, _ = runs[(-1.0, a0, 1e-4, T, 0.0)]
+        w = int(10 / (t[1] - t[0]))  # maximum over blocks of 10 time units, over the whole run
+        n = len(chi) // w * w
+        b.semilogy(t[:n:w], chi[:n].reshape(-1, w).max(axis=1), color=col, lw=0.7, label=f"{lab} ($a_0={a0:g}$)")
+    b.set(xlabel="time", ylabel=r"max $|\chi|$ over 10 time units")
+    b.set_title(r"(b) Decoder error $\varepsilon=10^{-4}$: bursts", loc="left", fontsize=8)
+    b.legend(frameon=False, loc="upper left")
+    b.set_ylim(1e-6, 1e3)
+    for a0, col in ((0.5, blue), (3.0, orange)):
+        med, sup = [], []
+        for eps in eps_list:
+            chi = runs[(-1.0, a0, eps, T, 0.0)][1]
+            chi = chi[len(chi) // 10:]
+            chi = chi[np.isfinite(chi)]
+            med.append(np.median(chi)); sup.append(chi.max())
+        c.loglog(eps_list, med, "o-", color=col, ms=3, lw=1.0)
+        c.loglog(eps_list, sup, "s--", color=col, ms=3, lw=1.0)
+    c.plot([], [], "k-o", ms=3, lw=1.0, label="median"); c.plot([], [], "k--s", ms=3, lw=1.0, label="maximum")
+    c.set(xlabel=r"decoder error $\varepsilon$", ylabel=r"$|\chi|$")
+    c.set_title("(c) Median scales,\nmaximum does not", loc="left", fontsize=8)
+    c.legend(frameon=False, loc="upper left")
+    for ax in (a, b, c):
+        style(ax)
+    fig.savefig(out / "fig_bubbling.pdf")
+    for a0 in (3.0, 0.5):
+        for eps in eps_list:
+            chi = runs[(-1.0, a0, eps, T, 0.0)][1]
+            chi = chi[len(chi) // 10:]
+            fin = chi[np.isfinite(chi)]
+            print(f"fig_bubbling a0={a0} eps={eps:g}: median {np.median(fin):.2e} sup {fin.max():.2e} "
+                  f"finite {np.isfinite(chi).mean():.2f}")
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--results", type=Path, required=True)
+    p.add_argument("--results", type=Path)
     p.add_argument("--out", type=Path, required=True)
     p.add_argument("--source-scan", type=Path, help="results/source_scan, for fig_sources")
+    p.add_argument("--only", nargs="*", help="make only these figures, e.g. overview family bubbling")
     a = p.parse_args()
     a.out.mkdir(parents=True, exist_ok=True)
+    if a.only:
+        for name in a.only:
+            globals()[f"fig_{name}"](a.out)
+        return
     fig_counterexample(a.out)
     fig_overview(a.out)
     fig_opening(a.out)
+    fig_family(a.out)
+    fig_bubbling(a.out)
     data = {name: load(a.results / f) for name, f in SCANS.items()}
     fig_tangent_survival(data, a.out)
     fig_predictors(data, a.out)
