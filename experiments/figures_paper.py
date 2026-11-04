@@ -298,7 +298,7 @@ def fig_tangent_survival(data, out):
         ax.set_xlabel("largest conditional exponent")
         ax.set_ylabel("closed-loop exponent")
         ax.set_title(f"{name} ({len(stable)} stable runs)", loc="left", pad=12)
-        ax.legend(frameon=False, loc="center", bbox_to_anchor=(0.5, 0.45), ncol=2, markerscale=2.5)
+        ax.legend(frameon=False, loc="center", bbox_to_anchor=(0.5, 0.45), markerscale=2.5)
         style(ax)
     fig.savefig(out / "fig_tangent_survival.pdf")
 
